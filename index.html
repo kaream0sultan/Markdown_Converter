@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint — Markdown to Print</title>
+<!-- Fonts: load from Google when online, graceful fallback when offline -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* Offline-safe font stack — Google Fonts override these when loaded */
+  :root {
+    --font-body: 'Literata', 'Noto Kufi Arabic', Georgia, 'Times New Roman', serif;
+    --font-ui: 'Noto Kufi Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script>
+// Inline fallback if CDN is unavailable (offline mode)
+if (typeof marked === 'undefined') {
+  window.marked = {
+    setOptions: function(){},
+    parse: function(src) {
+      // Basic markdown parser for offline fallback
+      return src
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/^#{6}\s(.+)/gm,'<h6>$1</h6>')
+        .replace(/^#{5}\s(.+)/gm,'<h5>$1</h5>')
+        .replace(/^#{4}\s(.+)/gm,'<h4>$1</h4>')
+        .replace(/^#{3}\s(.+)/gm,'<h3>$1</h3>')
+        .replace(/^#{2}\s(.+)/gm,'<h2>$1</h2>')
+        .replace(/^#{1}\s(.+)/gm,'<h1>$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/`(.+?)`/g,'<code>$1</code>')
+        .replace(/^\s*[-*+]\s(.+)/gm,'<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
+        .replace(/^\s*>\s(.+)/gm,'<blockquote><p>$1</p></blockquote>')
+        .replace(/^---+$/gm,'<hr>')
+        .replace(/\n\n/g,'</p><p>')
+        .replace(/^(?!<[h|u|o|l|b|p|h])/gm, function(m,o,s){ return '<p>' })
+        .replace(/([^>])\n/g,'$1<br>');
+    }
+  };
+}
+</script>
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: #e0dbd0;
+    --text: #1a1714;
+    --text-muted: #6b6560;
+    --accent: #5c4a3a;
+    --accent-light: #8b7355;
+    --accent-glow: rgba(92, 74, 58, 0.12);
+    --green: #3d6b4f;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-float: 0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    --font-body: 'Literata', 'Noto Kufi Arabic', Georgia, 'Times New Roman', serif;
+    --font-ui: 'Noto Kufi Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+    --base-font-size: 16px;
+    --line-height: 1.75;
+    --body-scale: 1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s;
+  }
+
+  /* ─── PAGES ─── */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* ─── PAGE 1: HOME ─── */
+  #page-home {
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(92,74,58,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(61,107,79,0.05) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .home-inner {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .home-header {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    width: 56px; height: 56px;
+    background: var(--accent);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .logo-mark svg { width: 28px; height: 28px; fill: white; }
+
+  .home-title {
+    font-family: var(--font-body);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .home-subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 400;
+    line-height: 1.5;
+    max-width: 380px;
+  }
+
+  .lang-toggle {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    left: auto;
+    transform: translateY(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+    z-index: 100;
+    transition: all 0.3s;
+  }
+
+  [dir="rtl"] .lang-toggle {
+    right: auto;
+    left: 0;
+    border-right: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.08);
+  }
+
+  .lang-btn {
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 34px;
+    text-align: center;
+  }
+
+  .lang-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Choose type button */
+  .choose-btn {
+    width: 100%;
+    padding: 28px 32px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-align: center;
+    transition: all 0.25s;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+  }
+
+  .choose-btn:hover {
+    border-color: var(--accent-light);
+    color: var(--text);
+    box-shadow: var(--shadow-float);
+    transform: translateY(-1px);
+  }
+
+  .choose-btn .chevron {
+    width: 18px; height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    transition: transform 0.25s;
+  }
+
+  .choose-btn.open .chevron { transform: rotate(180deg); }
+
+  /* Dropdown */
+  .type-dropdown {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-float);
+    animation: slideDown 0.2s ease;
+    display: none;
+  }
+
+  .type-dropdown.open { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .type-option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .type-option:last-child { border-bottom: none; }
+
+  .type-option:hover { background: var(--surface2); }
+
+  .option-icon {
+    width: 42px; height: 42px;
+    background: var(--accent-glow);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .option-icon svg {
+    width: 20px; height: 20px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .option-text h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .option-text p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* File list */
+  .file-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    display: none;
+  }
+
+  .file-list.visible { display: flex; }
+
+  .file-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    cursor: default;
+    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+
+  .file-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    border-color: var(--accent-light);
+    box-shadow: var(--shadow-float);
+  }
+
+  .file-item.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .drag-handle {
+    width: 20px; height: 20px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px;
+    cursor: grab;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+
+  .drag-handle:hover { opacity: 1; }
+
+  .drag-handle span {
+    display: block;
+    width: 14px; height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+
+  .file-item .file-num {
+    width: 24px; height: 24px;
+    background: var(--accent);
+    color: white;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .file-item .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .file-remove {
+    width: 20px; height: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .file-remove:hover { background: #fee; color: #c00; }
+
+  .proceed-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .proceed-btn.visible { display: block; }
+  .proceed-btn:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    animation: modalIn 0.25s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-header h2 {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .modal-close {
+    width: 32px; height: 32px;
+    border: none;
+    background: var(--surface2);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: all 0.15s;
+  }
+
+  .modal-close:hover { background: var(--border); color: var(--text); }
+
+  .modal-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #direct-input {
+    width: 100%;
+    height: 320px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #direct-input:focus { border-color: var(--accent-light); }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    padding: 10px 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { background: var(--border); }
+
+  .btn-primary {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary:hover { background: var(--accent-light); }
+
+  /* ─── PAGE 2: PREVIEW ─── */
+  #page-preview {
+    flex-direction: column;
+  }
+
+  /* Floating settings bar */
+  .settings-bar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .settings-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .settings-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .settings-sep {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 8px;
+  }
+
+  .stepper button {
+    width: 24px; height: 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+
+  .stepper button:hover { background: var(--border); color: var(--text); }
+
+  .stepper span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .range-val {
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 28px;
+  }
+
+  .bar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .bar-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .bar-btn svg {
+    width: 15px; height: 15px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .bar-btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .bar-btn-outline:hover { background: var(--surface2); color: var(--text); }
+
+  .bar-btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .bar-btn-primary:hover { background: var(--accent-light); }
+
+  /* Preview content area */
+  .preview-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 20px;
+    background: var(--bg);
+  }
+
+  /* ─── MARKDOWN CONTENT ─── */
+  .md-page {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 56px 64px;
+    max-width: 800px;
+    margin: 0 auto 40px;
+    box-shadow: var(--shadow);
+    font-family: var(--font-body);
+    font-size: var(--base-font-size);
+    line-height: var(--line-height);
+    color: var(--text);
+  }
+
+  .md-page + .md-page {
+    position: relative;
+  }
+
+  /* No separator between files in preview - content flows continuously */
+
+  /* Markdown rendered elements */
+  .md-content h1, .md-content h2, .md-content h3,
+  .md-content h4, .md-content h5, .md-content h6 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+    color: var(--text);
+  }
+
+  .md-content h1 { font-size: 2.2em; font-weight: 700; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  .md-content h2 { font-size: 1.6em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+  .md-content h3 { font-size: 1.3em; }
+  .md-content h4 { font-size: 1.1em; }
+  .md-content h5 { font-size: 1em; font-weight: 700; }
+  .md-content h6 { font-size: 0.9em; font-weight: 700; color: var(--text-muted); }
+
+  .md-content p { margin-bottom: 1em; }
+
+  .md-content strong { font-weight: 700; color: var(--text); }
+  .md-content em { font-style: italic; }
+  .md-content del { text-decoration: line-through; color: var(--text-muted); }
+
+  .md-content a { color: var(--accent); text-decoration: underline; text-decoration-color: var(--accent-light); }
+
+  .md-content ul, .md-content ol {
+    padding-left: 1.6em;
+    margin-bottom: 1em;
+  }
+
+  .md-content li {
+    margin-bottom: 0.35em;
+    line-height: var(--line-height);
+  }
+
+  .md-content li p { margin-bottom: 0.35em; }
+
+  .md-content ul li::marker { color: var(--accent-light); }
+  .md-content ol li::marker { font-weight: 600; color: var(--accent); }
+
+  /* Nested lists */
+  .md-content ul ul, .md-content ol ul { list-style-type: circle; }
+  .md-content ul ul ul { list-style-type: square; }
+
+  .md-content blockquote {
+    border-left: 4px solid var(--accent-light);
+    padding: 16px 20px;
+    margin: 1.2em 0;
+    background: var(--surface2);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-muted);
+    font-style: normal;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .md-content blockquote:hover {
+    background: var(--surface2);
+    filter: brightness(0.95);
+  }
+
+  .md-content blockquote::after {
+    content: attr(data-direction-hint);
+    position: absolute;
+    bottom: 8px;
+    right: 16px;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .md-content blockquote:hover::after {
+    opacity: 0.7;
+  }
+
+  .md-content blockquote p { margin-bottom: 0; }
+
+  .md-content code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: linear-gradient(135deg, #f5f3f0 0%, #ede9e2 100%);
+    border: 1px solid #e0dbd0;
+    padding: 4px 8px;
+    border-radius: 5px;
+    color: #3d6b4f;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+  }
+
+  .md-content pre {
+    background: linear-gradient(135deg, #2a2520 0%, #1f1c19 100%);
+    color: #e8e4df;
+    border-radius: 12px;
+    padding: 24px;
+    overflow-x: auto;
+    margin: 1.4em 0;
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    line-height: 1.7;
+    border: 1px solid #3a3530;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.1);
+    position: relative;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .md-content pre::before {
+    content: "Block";
+    position: absolute;
+    top: 10px;
+    left: 24px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8b8580;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .md-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    padding-top: 16px;
+    color: inherit;
+    font-size: inherit;
+    display: block;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  /* Direction control for code blocks and blockquotes */
+  .md-content pre[dir="ltr"],
+  .md-content blockquote[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+  }
+
+  .md-content pre[dir="rtl"],
+  .md-content blockquote[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+
+  /* Interactive direction toggle on hover */
+  .md-content pre {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .md-content pre:hover::after {
+    content: attr(data-direction-hint);
+    position: absolute;
+    bottom: 8px;
+    right: 24px;
+    font-size: 10px;
+    color: #8b8580;
+    background: rgba(42, 37, 32, 0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .md-content hr {
+    border: none;
+    border-top: 2px solid var(--border);
+    margin: 2em 0;
+    border-radius: 1px;
+  }
+
+  .md-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.95em;
+  }
+
+  .md-content th {
+    background: var(--surface2);
+    font-weight: 700;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    text-align: start;
+  }
+
+  .md-content td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+  }
+
+  .md-content tr:nth-child(even) td { background: var(--surface2); }
+
+  .md-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 1em 0;
+  }
+
+  .md-content input[type="checkbox"] {
+    margin-right: 6px;
+    accent-color: var(--accent);
+  }
+
+  /* Task lists */
+  .md-content li:has(input[type="checkbox"]) {
+    list-style: none;
+    margin-left: -1.2em;
+  }
+
+  /* ─── RTL SUPPORT ─── */
+  .rtl { direction: rtl; text-align: right; }
+  .rtl .md-content ul, .rtl .md-content ol { padding-right: 1.6em; padding-left: 0; }
+  .rtl .md-content blockquote { border-left: none; border-right: 4px solid var(--accent-light); border-radius: 8px 0 0 8px; }
+  .rtl .md-content li:has(input[type="checkbox"]) { margin-right: -1.2em; margin-left: 0; }
+  .rtl input[type="checkbox"] { margin-left: 6px; margin-right: 0; }
+
+  /* ─── PAGE 3: PRINT ─── */
+  #page-print {
+    flex-direction: column;
+  }
+
+  .print-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+
+  .back-btn {
+    padding: 8px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+
+  .back-btn:hover { background: var(--border); }
+
+  .back-btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .print-area {
+    flex: 1;
+    padding: 40px 20px;
+    background: #888;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .print-sheet {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 20mm 20mm 20mm;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    font-family: var(--font-body);
+    font-size: var(--base-font-size);
+    line-height: var(--line-height);
+    color: #111;
+    position: relative;
+  }
+
+  .print-sheet .md-content pre code {
+    color: #9d7ff0 !important;
+  }
+
+  @media (max-width: 860px) {
+    .print-sheet {
+      width: 100%;
+      min-height: auto;
+      padding: 16mm;
+    }
+  }
+
+  /* ─── PRINT MEDIA ─── */
+  @media print {
+    body { background: white !important; }
+    .settings-bar, .lang-toggle, .print-header, .bar-actions { display: none !important; }
+    .print-area { background: white !important; padding: 0 !important; }
+    .print-sheet {
+      box-shadow: none !important;
+      width: 100% !important;
+      margin: 0 !important;
+      break-after: page;
+    }
+    .preview-scroll { padding: 0 !important; background: white !important; }
+    .md-page {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      max-width: 100% !important;
+      break-after: page;
+    }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .md-page { padding: 32px 24px; }
+    .settings-bar { gap: 10px; padding: 10px 16px; }
+    input[type="range"] { width: 70px; }
+  }
+
+  @media (max-width: 480px) {
+    .bar-actions { width: 100%; }
+    .bar-btn { flex: 1; justify-content: center; }
+  }
+
+  /* ─── ANIMATIONS ─── */
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .slide-up { animation: slideUp 0.35s ease; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--text-muted);
+  }
+
+  .empty-state h3 {
+    font-family: var(--font-body);
+    font-size: 1.3rem;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+
+  .empty-state p { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- Language Toggle -->
+<div class="lang-toggle">
+  <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" data-lang="ar" onclick="setLang('ar')">ع</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 1: HOME
+══════════════════════════════════════ -->
+<div id="page-home" class="page active">
+  <div class="home-inner">
+
+    <div class="home-header">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+      </div>
+      <h1 class="home-title" data-i18n="home.title">MarkPrint</h1>
+      <p class="home-subtitle" data-i18n="home.subtitle">Convert your Markdown files into beautiful print-ready pages with full formatting support</p>
+    </div>
+
+    <!-- Choose type button -->
+    <div style="width:100%; display:flex; flex-direction:column; gap:12px;">
+      <button class="choose-btn" id="chooseBtn" onclick="toggleDropdown()">
+        <span data-i18n="home.choose">Choose the type</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <div class="type-dropdown" id="typeDropdown">
+        <div class="type-option" onclick="openFileInput()">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="option-text">
+            <h3 data-i18n="home.opt1.title">Upload Files</h3>
+            <p data-i18n="home.opt1.desc">Select .md or .txt files from your device (multiple files supported)</p>
+          </div>
+        </div>
+        <div class="type-option" onclick="openDirectInput()">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <div class="option-text">
+            <h3 data-i18n="home.opt2.title">Type Directly</h3>
+            <p data-i18n="home.opt2.desc">Write your Markdown content directly in a text editor</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- File list -->
+      <div class="file-list" id="fileList"></div>
+
+      <!-- Proceed button -->
+      <button class="proceed-btn" id="proceedBtn" onclick="goToPreview()" data-i18n="home.proceed">
+        Preview & Format →
+      </button>
+    </div>
+
+  </div>
+  <input type="file" id="fileInput" accept=".md,.txt" multiple style="display:none" onchange="handleFiles(event)">
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 2: PREVIEW
+══════════════════════════════════════ -->
+<div id="page-preview" class="page">
+
+  <div class="settings-bar">
+    <button class="bar-btn bar-btn-outline" onclick="goToPage('home')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span data-i18n="nav.back">Back</span>
+    </button>
+
+    <div class="settings-sep"></div>
+
+    <div class="settings-group">
+      <span class="settings-label" data-i18n="settings.textSize">Text Size</span>
+      <div class="stepper">
+        <button onclick="adjustSize(-1)">−</button>
+        <span id="sizeVal">100%</span>
+        <button onclick="adjustSize(1)">+</button>
+      </div>
+    </div>
+
+    <div class="settings-sep"></div>
+
+    <div class="settings-group">
+      <span class="settings-label" data-i18n="settings.lineSpacing">Line Spacing</span>
+      <div class="range-wrap">
+        <input type="range" min="1.2" max="2.8" step="0.1" value="1.75" id="lineSpacingRange" oninput="updateLineSpacing(this.value)">
+        <span class="range-val" id="lineSpacingVal">1.75</span>
+      </div>
+    </div>
+
+    <div class="settings-sep"></div>
+
+    <div class="settings-group">
+      <span class="settings-label" data-i18n="settings.bodySize">Body Text</span>
+      <div class="stepper">
+        <button onclick="adjustBodyScale(-1)">−</button>
+        <span id="bodyScaleVal">100%</span>
+        <button onclick="adjustBodyScale(1)">+</button>
+      </div>
+    </div>
+
+    <div class="bar-actions">
+      <button class="bar-btn bar-btn-outline" onclick="goToPage('print')">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <span data-i18n="nav.print">Print</span>
+      </button>
+      <button class="bar-btn bar-btn-primary" onclick="downloadHTML()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-i18n="nav.download">Download</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="preview-scroll" id="previewScroll">
+    <div id="previewContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 3: PRINT
+══════════════════════════════════════ -->
+<div id="page-print" class="page">
+  <div class="print-header">
+    <button class="back-btn" onclick="goToPage('preview')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span data-i18n="nav.back">Back</span>
+    </button>
+    <span style="font-size:14px;color:var(--text-muted);margin-left:8px;" data-i18n="print.hint">Use Ctrl+P / Cmd+P to print</span>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="bar-btn bar-btn-primary" onclick="window.print()" style="padding:8px 20px;">
+        <svg style="width:15px;height:15px;stroke:white;fill:none;stroke-width:2;" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <span data-i18n="nav.print">Print</span>
+      </button>
+    </div>
+  </div>
+  <div class="print-area" id="printArea"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DIRECT INPUT MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 data-i18n="modal.title">Write Markdown</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);" data-i18n="modal.hint">Type or paste your Markdown content below</p>
+      <input type="text" id="direct-name" placeholder="Document name (optional)" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font-ui);font-size:13px;background:var(--surface2);color:var(--text);outline:none;margin-bottom:4px;" />
+      <textarea id="direct-input" placeholder="# My Document&#10;&#10;Write your **Markdown** content here...&#10;&#10;- Item 1&#10;- Item 2&#10;&#10;&gt; A beautiful quote"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()" data-i18n="modal.cancel">Cancel</button>
+      <button class="btn-primary" onclick="useDirectInput()" data-i18n="modal.apply">Apply →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let currentLang = 'en';
+// Unified item list: { type: 'file'|'direct', name, content }
+let items = [];
+let sizeScale = 100;   // global scale %
+let bodyScale = 100;   // body text extra scale
+let lineSpacing = 1.75;
+
+const i18n = {
+  en: {
+    'home.title': 'MarkPrint',
+    'home.subtitle': 'Convert your Markdown files into beautiful print-ready pages with full formatting support',
+    'home.choose': 'Choose the type',
+    'home.opt1.title': 'Upload Files',
+    'home.opt1.desc': 'Select .md or .txt files from your device (multiple files supported)',
+    'home.opt2.title': 'Type Directly',
+    'home.opt2.desc': 'Write your Markdown content directly in a text editor',
+    'home.proceed': 'Preview & Format →',
+    'nav.back': 'Back',
+    'nav.print': 'Print',
+    'nav.download': 'Download HTML',
+    'settings.textSize': 'Text Size',
+    'settings.lineSpacing': 'Line Spacing',
+    'settings.bodySize': 'Body Text',
+    'modal.title': 'Write Markdown',
+    'modal.hint': 'Type or paste your Markdown content below',
+    'modal.cancel': 'Cancel',
+    'modal.apply': 'Apply →',
+    'print.hint': 'Use Ctrl+P / Cmd+P to print',
+    'empty.title': 'No content yet',
+    'empty.desc': 'Go back and add some files or write content',
+  },
+  ar: {
+    'home.title': 'MarkPrint',
+    'home.subtitle': 'حوّل ملفاتك بتنسيق Markdown إلى صفحات جاهزة للطباعة بتنسيق احترافي',
+    'home.choose': 'اختر النوع',
+    'home.opt1.title': 'رفع ملفات',
+    'home.opt1.desc': 'اختر ملفات .md أو .txt من جهازك (يدعم اختيار أكثر من ملف)',
+    'home.opt2.title': 'الكتابة المباشرة',
+    'home.opt2.desc': 'اكتب محتوى Markdown مباشرةً في محرر النصوص',
+    'home.proceed': 'معاينة وتنسيق ←',
+    'nav.back': 'رجوع',
+    'nav.print': 'طباعة',
+    'nav.download': 'تحميل HTML',
+    'settings.textSize': 'حجم النص',
+    'settings.lineSpacing': 'تباعد الأسطر',
+    'settings.bodySize': 'نص عادي',
+    'modal.title': 'كتابة Markdown',
+    'modal.hint': 'اكتب أو الصق محتوى Markdown أدناه',
+    'modal.cancel': 'إلغاء',
+    'modal.apply': '← تطبيق',
+    'print.hint': 'استخدم Ctrl+P / Cmd+P للطباعة',
+    'empty.title': 'لا يوجد محتوى بعد',
+    'empty.desc': 'ارجع وأضف ملفات أو اكتب محتوى',
+  }
+};
+
+// ═══════════════════════════════════════
+//  LANGUAGE
+// ═══════════════════════════════════════
+function setLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (i18n[lang][key]) el.textContent = i18n[lang][key];
+  });
+
+  // update textarea placeholder
+  const ta = document.getElementById('direct-input');
+  const nm = document.getElementById('direct-name');
+  if (lang === 'ar') {
+    ta.placeholder = '# عنوان الوثيقة\n\nاكتب محتوى **Markdown** هنا...\n\n- عنصر أول\n- عنصر ثاني\n\n> اقتباس جميل';
+    ta.dir = 'rtl';
+    if (nm) nm.placeholder = 'اسم المستند (اختياري)';
+  } else {
+    ta.placeholder = "# My Document\n\nWrite your **Markdown** content here...\n\n- Item 1\n- Item 2\n\n> A beautiful quote";
+    ta.dir = 'ltr';
+    if (nm) nm.placeholder = 'Document name (optional)';
+  }
+
+  renderPreview();
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function goToPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  if (pageId === 'preview') renderPreview();
+  if (pageId === 'print') renderPrint();
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════
+//  DROPDOWN
+// ═══════════════════════════════════════
+function toggleDropdown() {
+  const dd = document.getElementById('typeDropdown');
+  const btn = document.getElementById('chooseBtn');
+  const open = dd.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+function closeDropdown() {
+  document.getElementById('typeDropdown').classList.remove('open');
+  document.getElementById('chooseBtn').classList.remove('open');
+}
+
+// ═══════════════════════════════════════
+//  FILE INPUT
+// ═══════════════════════════════════════
+function openFileInput() {
+  closeDropdown();
+  document.getElementById('fileInput').click();
+}
+
+function handleFiles(e) {
+  const newFiles = Array.from(e.target.files);
+  newFiles.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      items.push({ type: 'file', name: f.name, content: ev.target.result });
+      renderFileList();
+    };
+    reader.readAsText(f);
+  });
+  e.target.value = '';
+}
+
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  const proceed = document.getElementById('proceedBtn');
+
+  if (items.length === 0) {
+    list.classList.remove('visible');
+    proceed.classList.remove('visible');
+    return;
+  }
+
+  list.innerHTML = items.map((item, i) => {
+    const isDirect = item.type === 'direct';
+    const numBg = isDirect ? 'style="background:var(--green)"' : '';
+    const numLabel = isDirect ? '✎' : (i + 1);
+    const label = isDirect
+      ? (currentLang === 'ar' ? 'نص مكتوب مباشرةً' : 'Direct text input')
+      : item.name;
+    return `
+    <div class="file-item fade-in" draggable="true" data-index="${i}"
+         ondragstart="onDragStart(event,${i})"
+         ondragover="onDragOver(event)"
+         ondrop="onDrop(event,${i})"
+         ondragleave="onDragLeave(event)"
+         ondragend="onDragEnd(event)">
+      <div class="drag-handle" title="${currentLang==='ar'?'اسحب لإعادة الترتيب':'Drag to reorder'}">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="file-num" ${numBg}>${numLabel}</div>
+      <span class="file-name">${label}</span>
+      <button class="file-remove" onclick="removeItem(${i})" title="${currentLang==='ar'?'حذف':'Remove'}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>`;
+  }).join('');
+
+  list.classList.add('visible');
+  proceed.classList.add('visible');
+}
+
+// ─── DRAG & DROP REORDER ───
+let dragSrcIndex = null;
+
+function onDragStart(e, index) {
+  dragSrcIndex = index;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e, targetIndex) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+  const moved = items.splice(dragSrcIndex, 1)[0];
+  items.splice(targetIndex, 0, moved);
+  dragSrcIndex = null;
+  renderFileList();
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('drag-over'));
+  dragSrcIndex = null;
+}
+
+function removeItem(i) {
+  items.splice(i, 1);
+  renderFileList();
+}
+
+function clearDirect() {
+  items = items.filter(it => it.type !== 'direct');
+  renderFileList();
+}
+
+// ═══════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════
+function openDirectInput() {
+  closeDropdown();
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('direct-input').focus();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function useDirectInput() {
+  const val = document.getElementById('direct-input').value.trim();
+  if (!val) { closeModal(); return; }
+  const nameInput = document.getElementById('direct-name').value.trim();
+  // Count existing direct entries to generate a default name
+  const directCount = items.filter(it => it.type === 'direct').length + 1;
+  const name = nameInput || ('Note ' + directCount);
+  items.push({ type: 'direct', name: name, content: val });
+  // Clear fields for next use
+  document.getElementById('direct-input').value = '';
+  document.getElementById('direct-name').value = '';
+  closeModal();
+  renderFileList();
+}
+
+// ═══════════════════════════════════════
+//  GO TO PREVIEW
+// ═══════════════════════════════════════
+function goToPreview() {
+  if (items.length === 0) return;
+  goToPage('preview');
+}
+
+// ═══════════════════════════════════════
+//  DETECT TEXT DIRECTION
+// ═══════════════════════════════════════
+function detectDir(text) {
+  const arabicRatio = (text.match(/[\u0600-\u06FF]/g) || []).length / Math.max(text.length, 1);
+  return arabicRatio > 0.15 ? 'rtl' : 'ltr';
+}
+
+// ═══════════════════════════════════════
+//  MARKED SETUP
+// ═══════════════════════════════════════
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+  pedantic: false,
+});
+
+// ═══════════════════════════════════════
+//  RENDER PREVIEW
+// ═══════════════════════════════════════
+function renderPreview() {
+  const container = document.getElementById('previewContent');
+  const allContent = getAllContent();
+
+  if (allContent.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3 data-i18n="empty.title">${i18n[currentLang]['empty.title']}</h3>
+        <p data-i18n="empty.desc">${i18n[currentLang]['empty.desc']}</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = allContent.map((item, idx) => {
+    const dir = detectDir(item.text);
+    const html = marked.parse(item.text);
+    return `<div class="md-page slide-up ${dir === 'rtl' ? 'rtl' : ''}" style="animation-delay:${idx * 0.05}s">
+      <div class="md-content">${processCheckboxes(html)}</div>
+    </div>`;
+  }).join('');
+
+  applyStyles();
+  setupDirectionToggles();
+}
+
+function setupDirectionToggles() {
+  // Handle code blocks (pre elements)
+  document.querySelectorAll('.md-content pre').forEach(preEl => {
+    // Set initial direction based on content
+    const codeContent = preEl.textContent || '';
+    const codeDir = detectDir(codeContent);
+    preEl.setAttribute('dir', codeDir);
+    preEl.setAttribute('data-direction-hint', codeDir === 'ltr' ? 'RTL ⟲' : 'LTR ⟲');
+    
+    // Toggle direction on click
+    preEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentDir = preEl.getAttribute('dir') || 'ltr';
+      const newDir = currentDir === 'ltr' ? 'rtl' : 'ltr';
+      preEl.setAttribute('dir', newDir);
+      preEl.setAttribute('data-direction-hint', newDir === 'ltr' ? 'RTL ⟲' : 'LTR ⟲');
+    });
+  });
+
+  // Handle blockquotes
+  document.querySelectorAll('.md-content blockquote').forEach(blockquoteEl => {
+    // Set initial direction based on content
+    const quoteContent = blockquoteEl.textContent || '';
+    const quoteDir = detectDir(quoteContent);
+    blockquoteEl.setAttribute('dir', quoteDir);
+    blockquoteEl.setAttribute('data-direction-hint', quoteDir === 'ltr' ? 'RTL ⟲' : 'LTR ⟲');
+    
+    // Toggle direction on click
+    blockquoteEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentDir = blockquoteEl.getAttribute('dir') || 'ltr';
+      const newDir = currentDir === 'ltr' ? 'rtl' : 'ltr';
+      blockquoteEl.setAttribute('dir', newDir);
+      blockquoteEl.setAttribute('data-direction-hint', newDir === 'ltr' ? 'RTL ⟲' : 'LTR ⟲');
+    });
+  });
+}
+
+function getAllContent() {
+  return items.map(it => ({ name: it.name, text: it.content }));
+}
+
+function processCheckboxes(html) {
+  return html
+    .replace(/\[ \]/g, '<input type="checkbox" disabled>')
+    .replace(/\[x\]/gi, '<input type="checkbox" disabled checked>');
+}
+
+// ═══════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════
+function applyStyles() {
+  // Global font size scale
+  const globalSize = (sizeScale / 100) * 16;
+  document.querySelectorAll('.md-page').forEach(p => {
+    p.style.fontSize = globalSize + 'px';
+    p.style.lineHeight = lineSpacing;
+  });
+
+  // Body text extra scale applied to paragraphs, list items, code, tables, pre
+  const bodySize = globalSize * (bodyScale / 100);
+  document.querySelectorAll('.md-content p, .md-content li, .md-content code, .md-content pre, .md-content table, .md-content th, .md-content td').forEach(el => {
+    el.style.fontSize = bodySize + 'px';
+  });
+
+  document.getElementById('sizeVal').textContent = sizeScale + '%';
+  document.getElementById('bodyScaleVal').textContent = bodyScale + '%';
+}
+
+function adjustSize(dir) {
+  sizeScale = Math.min(200, Math.max(50, sizeScale + dir * 5));
+  applyStyles();
+}
+
+function adjustBodyScale(dir) {
+  bodyScale = Math.min(200, Math.max(50, bodyScale + dir * 5));
+  applyStyles();
+}
+
+function updateLineSpacing(val) {
+  lineSpacing = parseFloat(val);
+  document.getElementById('lineSpacingVal').textContent = lineSpacing.toFixed(2);
+  applyStyles();
+}
+
+// ═══════════════════════════════════════
+//  RENDER PRINT
+// ═══════════════════════════════════════
+function renderPrint() {
+  const printArea = document.getElementById('printArea');
+  const allContent = getAllContent();
+
+  if (allContent.length === 0) {
+    printArea.innerHTML = `<div style="background:white;padding:40px;border-radius:8px;color:#999;text-align:center;">${i18n[currentLang]['empty.title']}</div>`;
+    return;
+  }
+
+  const globalSize = (sizeScale / 100) * 16;
+  const bodySize = globalSize * (bodyScale / 100);
+
+  // Detect dominant direction across all content
+  const allText = allContent.map(i => i.text).join(' ');
+  const dir = detectDir(allText);
+
+  // Merge all content into a single print sheet (no separators)
+  const mergedHtml = allContent.map(item => {
+    return marked.parse(item.text);
+  }).join('\n');
+
+  printArea.innerHTML = `<div class="print-sheet ${dir === 'rtl' ? 'rtl' : ''}" style="font-size:${globalSize}px;line-height:${lineSpacing};">
+    <div class="md-content" style="--p-size:${bodySize}px;">${processCheckboxes(mergedHtml)}</div>
+  </div>`;
+
+  // Apply body size to paragraphs, lists, code, tables in print sheets
+  printArea.querySelectorAll('.print-sheet .md-content p, .print-sheet .md-content li, .print-sheet .md-content code, .print-sheet .md-content pre, .print-sheet .md-content table, .print-sheet .md-content th, .print-sheet .md-content td').forEach(el => {
+    el.style.fontSize = bodySize + 'px';
+  });
+
+  setupDirectionToggles();
+}
+
+// ═══════════════════════════════════════
+//  DOWNLOAD
+// ═══════════════════════════════════════
+function downloadHTML() {
+  const content = document.getElementById('previewContent').innerHTML;
+  const globalSize = (sizeScale / 100) * 16;
+  const bodySize = globalSize * (bodyScale / 100);
+
+  const htmlDoc = `<!DOCTYPE html>
+<html lang="${currentLang}" dir="${currentLang === 'ar' ? 'rtl' : 'ltr'}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint Export</title>
+<style>
+  :root {
+    --bg:#f7f5f0;--surface:#fff;--surface2:#f0ede6;--border:#e0dbd0;
+    --text:#1a1714;--text-muted:#6b6560;--accent:#5c4a3a;--accent-light:#8b7355;
+    --green:#3d6b4f;
+    --font-body: 'Literata', 'Noto Kufi Arabic', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);font-family:var(--font-body);color:var(--text);padding:40px 20px;}
+  .md-page{background:#fff;border-radius:12px;padding:56px 64px;max-width:800px;margin:0 auto 40px;box-shadow:0 4px 24px rgba(0,0,0,.08);font-size:${globalSize}px;line-height:${lineSpacing};}
+  .md-page.rtl{direction:rtl;text-align:right;}
+  .md-content h1{font-size:2.2em;font-weight:700;border-bottom:2px solid var(--border);padding-bottom:.3em;margin-top:1.6em;margin-bottom:.6em;}
+  .md-content h2{font-size:1.6em;font-weight:600;border-bottom:1px solid var(--border);padding-bottom:.2em;margin-top:1.6em;margin-bottom:.6em;}
+  .md-content h3{font-size:1.3em;font-weight:600;margin-top:1.6em;margin-bottom:.6em;}
+  .md-content h4{font-size:1.1em;font-weight:600;margin-top:1.4em;margin-bottom:.5em;}
+  .md-content p{margin-bottom:1em;font-size:${bodySize}px;}
+  .md-content li{margin-bottom:.35em;font-size:${bodySize}px;}
+  .md-content strong{font-weight:700;}
+  .md-content em{font-style:italic;}
+  .md-content del{text-decoration:line-through;color:var(--text-muted);}
+  .md-content a{color:var(--accent);}
+  .md-content ul,.md-content ol{padding-left:1.6em;margin-bottom:1em;}
+  .md-content blockquote{border-left:4px solid var(--accent-light);padding:16px 20px;margin:1.2em 0;background:var(--surface2);border-radius:0 8px 8px 0;color:var(--text-muted);font-style:normal;font-weight:500;}
+  .md-content code{font-family:var(--font-mono);font-size:.9em;background:linear-gradient(135deg, #f5f3f0 0%, #ede9e2 100%);border:1px solid #e0dbd0;padding:4px 8px;border-radius:5px;color:#3d6b4f;font-weight:500;letter-spacing:-.3px;}
+  .md-content pre{background:linear-gradient(135deg, #2a2520 0%, #1f1c19 100%);color:#e8e4df;border-radius:12px;padding:24px;overflow-x:auto;margin:1.4em 0;font-family:var(--font-mono);font-size:.95em;line-height:1.7;border:1px solid #3a3530;box-shadow:inset 0 2px 8px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.1);position:relative;}
+  .md-content pre::before{content:"Block";position:absolute;top:10px;left:24px;font-size:11px;font-weight:700;color:#8b8580;letter-spacing:1px;text-transform:uppercase;}
+  .md-content pre code{background:none;border:none;padding:0;padding-top:16px;color:inherit;}
+  .md-content hr{border:none;border-top:2px solid var(--border);margin:2em 0;}
+  .md-content table{width:100%;border-collapse:collapse;margin:1em 0;}
+  .md-content th{background:var(--surface2);font-weight:700;padding:10px 14px;border:1px solid var(--border);}
+  .md-content td{padding:9px 14px;border:1px solid var(--border);}
+  .md-content tr:nth-child(even) td{background:var(--surface2);}
+  .rtl .md-content ul,.rtl .md-content ol{padding-right:1.6em;padding-left:0;}
+  .rtl .md-content blockquote{border-left:none;border-right:4px solid var(--accent-light);border-radius:8px 0 0 8px;}
+  @media print{body{background:white;}  .md-page{box-shadow:none;border-radius:0;max-width:100%;break-after:page;padding:20mm;}}
+</style>
+</head>
+<body>${content}</body>
+</html>`;
+
+  const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'markprint-export.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+setLang('en');
+</script>
+</body>
+</html>
