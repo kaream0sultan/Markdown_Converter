@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<style id="appcss">
+:root{--bg:#f7f5f0;--surface:#fff;--s2:#f0ede6;--border:#e0dbd0;--text:#1a1714;--muted:#6b6560;--accent:#5c4a3a;--al:#8b7355;--green:#3d6b4f;--body:'Literata','Noto Kufi Arabic',Georgia,serif;--ui:'Noto Kufi Arabic','Segoe UI',Tahoma,system-ui,sans-serif;--mono:'JetBrains Mono','Courier New',monospace;--fs:16px;--bfs:16px;--lh:1.75}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ui);background:var(--bg);color:var(--text);min-height:100vh}
+button,input,textarea{font-family:inherit}
+button{cursor:pointer}
+.page{display:none;min-height:100vh;flex-direction:column}
+.page.active{display:flex}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:13px;font-weight:600}
+.btn:hover{background:var(--border);color:var(--text)}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-p:hover{background:var(--al)}
+.ib{width:28px;height:28px;border:none;background:none;border-radius:6px;color:var(--muted);font-size:14px}
+.ib:hover{background:var(--s2);color:var(--text)}
+.lang{position:fixed;top:50%;inset-inline-end:0;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 4px;z-index:100;box-shadow:0 0 16px rgba(0,0,0,.08)}
+.lang button{border:none;background:none;padding:6px 8px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted)}
+.lang button.on{background:var(--accent);color:#fff}
+#page-home{align-items:center;justify-content:center;padding:40px 20px}
+.home{width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;gap:28px}
+.logo{width:56px;height:56px;border-radius:14px;background:var(--accent);display:grid;place-items:center}
+.logo svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:2}
+.title{font-family:var(--body);font-weight:300;font-size:clamp(2rem,5vw,3rem)}
+.sub{color:var(--muted);font-size:15px;text-align:center;max-width:400px;line-height:1.6}
+.col{width:100%;display:flex;flex-direction:column;gap:12px}
+.choose{width:100%;padding:22px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;font-family:var(--body);font-size:1.15rem;color:var(--muted);box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.choose:hover{border-color:var(--al);color:var(--text)}
+.menu{display:none;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;overflow:hidden}
+.menu.open{display:block}
+.opt{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer}
+.opt:last-child{border-bottom:none}
+.opt:hover{background:var(--s2)}
+.opt .ic{width:40px;height:40px;border-radius:10px;background:rgba(92,74,58,.12);display:grid;place-items:center;flex-shrink:0;font-size:18px}
+.opt h3{font-size:15px;font-weight:600}
+.opt p{font-size:13px;color:var(--muted)}
+.list{display:none;flex-direction:column;gap:8px}
+.list.on{display:flex}
+.item{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px}
+.num{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0;margin-inline-end:4px}
+.num.d{background:var(--green)}
+.name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{font-size:13px;color:var(--muted);text-align:center}
+.proceed{display:none;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600}
+.proceed.on{display:block}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px;z-index:200}
+.ov.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:700px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.modal h2{font-family:var(--body);font-size:1.1rem;font-weight:500}
+.modal input,.modal textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;background:var(--s2);color:var(--text);padding:10px 12px;outline:none}
+.modal textarea{height:300px;font-family:var(--mono);font-size:13.5px;line-height:1.6;padding:14px;resize:vertical}
+.mfoot{display:flex;justify-content:flex-end;gap:10px}
+.bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:10px 20px;background:rgba(255,255,255,.95);border-bottom:1px solid var(--border)}
+.grp{display:flex;align-items:center;gap:8px}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.step{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px 6px}
+.step button{width:24px;height:24px;border:none;background:none;border-radius:4px;color:var(--muted);font-size:15px}
+.step button:hover{background:var(--border)}
+.step span{font-size:13px;font-weight:600;min-width:44px;text-align:center}
+.sep{width:1px;height:24px;background:var(--border)}
+.bar input[type=range]{width:90px;accent-color:var(--accent)}
+.end{margin-inline-start:auto;display:flex;gap:8px;flex-wrap:wrap}
+.scroll{flex:1;padding:36px 16px;overflow-y:auto}
+.empty{text-align:center;padding:80px 20px;color:var(--muted)}
+.empty h3{font-family:var(--body);font-weight:400;font-size:1.3rem;margin-bottom:8px}
+.card{background:var(--surface);border-radius:12px;padding:52px 60px;max-width:800px;margin:0 auto 32px;box-shadow:0 4px 24px rgba(0,0,0,.08);font-size:var(--fs);line-height:var(--lh);color:var(--text)}
+.print-area{flex:1;padding:36px 16px;background:#888;overflow-y:auto;display:flex;flex-direction:column;align-items:center}
+.sheet{background:#fff;width:210mm;max-width:100%;min-height:297mm;padding:20mm;box-shadow:0 8px 32px rgba(0,0,0,.3);color:#111;font-family:var(--body);font-size:var(--fs);line-height:var(--lh)}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{font-family:var(--body);font-weight:600;line-height:1.25;margin:1.4em 0 .6em;break-after:avoid}
+.md h1{font-size:2.1em;font-weight:700;border-bottom:2px solid var(--border);padding-bottom:.3em}
+.md h2{font-size:1.55em;border-bottom:1px solid var(--border);padding-bottom:.2em}
+.md h3{font-size:1.3em}
+.md h4{font-size:1.1em}
+.md h5{font-size:1em;font-weight:700}
+.md h6{font-size:.9em;color:var(--muted)}
+.md p,.md li,.md blockquote,.md th,.md td{font-size:var(--bfs)}
+.md p{margin-bottom:1em}
+.md ul,.md ol{padding-inline-start:1.6em;margin-bottom:1em}
+.md li{margin-bottom:.35em}
+.md li:has(>input){list-style:none;margin-inline-start:-1.2em}
+.md ul ul{list-style-type:circle}
+.md a{color:var(--accent)}
+.md strong{font-weight:700}
+.md blockquote{border-inline-start:4px solid var(--al);background:var(--s2);border-radius:8px;padding:14px 18px;margin:1.2em 0;color:var(--muted);font-weight:500;cursor:pointer}
+.md blockquote p{margin-bottom:0}
+.md code{font-family:var(--mono);font-size:.9em;background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:2px 6px;color:var(--green)}
+.md pre{position:relative;background:#2a2520;color:#e8e4df;border-radius:12px;padding:22px;margin:1.4em 0;overflow-x:auto;white-space:pre-wrap;font-family:var(--mono);font-size:var(--bfs);line-height:1.7;cursor:pointer}
+.md pre::before{content:"CODE";display:block;font-size:11px;font-weight:700;letter-spacing:1px;color:#8b8580;margin-bottom:8px}
+.md pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+.md table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.95em}
+.md th,.md td{border:1px solid var(--border);padding:8px 12px}
+.md th{background:var(--s2);text-align:start}
+.md tr:nth-child(even) td{background:var(--s2)}
+.md hr{border:none;border-top:2px solid var(--border);margin:2em 0}
+.md input[type=checkbox]{margin-inline-end:6px;accent-color:var(--accent)}
+.md img{max-width:100%}
+.fig{position:relative;margin:1.2em 0}
+.frame{position:relative;margin:0 auto}
+.frame img{position:absolute;left:50%;top:50%;max-width:none}
+.missing{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:13px}
+.tools{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:8px;flex-wrap:wrap}
+.tools button{min-width:30px;height:28px;border:1px solid var(--border);background:var(--s2);border-radius:6px;font-size:13px;color:var(--text);padding:0 4px}
+.tools button:hover{background:var(--border)}
+.tools span{font-size:12px;color:var(--muted);min-width:44px;text-align:center}
+@page{size:A4;margin:18mm}
+@media print{
+  body{background:#fff}
+  .no-print,.lang,.bar{display:none!important}
+  .print-area{background:#fff;padding:0;display:block;overflow:visible}
+  .sheet{box-shadow:none;width:100%;min-height:0;padding:0;max-width:none}
+  .card{box-shadow:none;border-radius:0;padding:0;max-width:none;margin:0 0 24px}
+  .fig,pre,blockquote,table{break-inside:avoid}
+}
+@media (max-width:640px){.card{padding:28px 20px}.bar{padding:10px 12px}.sheet{padding:14mm}}
+</style>
+</head>
+<body>
+
+<div class="lang">
+  <button data-l="ar" onclick="setLang('ar')">ع</button>
+  <button data-l="en" onclick="setLang('en')">EN</button>
+</div>
+
+<!-- PAGE 1: HOME -->
+<div id="page-home" class="page active">
+  <div class="home">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <h1 class="title">MarkPrint</h1>
+    <p class="sub" data-i18n="sub"></p>
+    <div class="col">
+      <button class="choose" onclick="toggleMenu()"><span data-i18n="choose"></span> ▾</button>
+      <div class="menu" id="menu">
+        <div class="opt" onclick="pick('file')"><div class="ic">📄</div><div><h3 data-i18n="optFile"></h3><p data-i18n="optFileD"></p></div></div>
+        <div class="opt" onclick="pick('folder')"><div class="ic">📁</div><div><h3 data-i18n="optFolder"></h3><p data-i18n="optFolderD"></p></div></div>
+        <div class="opt" onclick="pick('text')"><div class="ic">✎</div><div><h3 data-i18n="optText"></h3><p data-i18n="optTextD"></p></div></div>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="note" id="imgInfo"></div>
+      <button class="proceed" id="proceed" onclick="go('preview')" data-i18n="proceed"></button>
+    </div>
+  </div>
+  <input type="file" id="fileIn" accept=".md,.markdown,.txt,image/*" multiple hidden>
+  <input type="file" id="folderIn" webkitdirectory multiple hidden>
+</div>
+
+<!-- PAGE 2: PREVIEW -->
+<div id="page-preview" class="page">
+  <div class="bar">
+    <button class="btn" onclick="go('home')" data-i18n="back"></button>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="textSize"></span>
+      <div class="step"><button onclick="adj('size',-5)">−</button><span id="vSize"></span><button onclick="adj('size',5)">+</button></div></div>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="lineSp"></span>
+      <input type="range" min="1.2" max="2.8" step="0.1" value="1.75" oninput="setLH(this.value)"><span class="lbl" id="vLh"></span></div>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="bodySize"></span>
+      <div class="step"><button onclick="adj('body',-5)">−</button><span id="vBody"></span><button onclick="adj('body',5)">+</button></div></div>
+    <div class="end">
+      <button class="btn" onclick="go('print')" data-i18n="print"></button>
+      <button class="btn btn-p" onclick="exportHTML()" data-i18n="download"></button>
+    </div>
+  </div>
+  <div class="scroll"><div id="previewContent"></div></div>
+</div>
+
+<!-- PAGE 3: PRINT -->
+<div id="page-print" class="page">
+  <div class="bar">
+    <button class="btn" onclick="go('preview')" data-i18n="back"></button>
+    <span class="lbl" data-i18n="printHint"></span>
+    <div class="end">
+      <button class="btn btn-p" onclick="exportHTML()" data-i18n="download"></button>
+      <button class="btn btn-p" onclick="window.print()" data-i18n="print"></button>
+    </div>
+  </div>
+  <div class="print-area"><div class="sheet" id="sheet"></div></div>
+</div>
+
+<!-- WRITE MODAL -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="row"><h2 data-i18n="writeTitle"></h2><button class="ib" onclick="closeModal()">✕</button></div>
+    <p class="note" data-i18n="writeHint"></p>
+    <input id="dname" data-ph="docName">
+    <textarea id="dtext"></textarea>
+    <div class="mfoot">
+      <button class="btn" onclick="closeModal()" data-i18n="cancel"></button>
+      <button class="btn btn-p" onclick="applyModal()" data-i18n="apply"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+
+const I = {
+  ar: {
+    choose:'اختر طريقة الإدخال', sub:'حوّل ملفات Markdown إلى صفحات جاهزة للطباعة، مع دعم الصور بصيغة Obsidian',
+    optFile:'رفع ملفات', optFileD:'ملفات .md أو .txt، والصور اختيارية',
+    optFolder:'رفع مجلد', optFolderD:'مجلد يحتوي الملفات، ومجلد images للصور',
+    optText:'الكتابة المباشرة', optTextD:'اكتب Markdown مباشرة',
+    proceed:'معاينة وتنسيق ←', back:'رجوع', print:'طباعة', download:'تحميل HTML',
+    textSize:'حجم النص', lineSp:'تباعد الأسطر', bodySize:'النص الأساسي',
+    writeTitle:'كتابة Markdown', writeHint:'اكتب أو الصق المحتوى', docName:'اسم المستند (اختياري)',
+    cancel:'إلغاء', apply:'تطبيق ←', printHint:'معاينة الطباعة فقط، للتعديل ارجع إلى المعاينة',
+    note:'ملاحظة', imgCount:'صور مكتشفة: {n}', missing:'صورة غير موجودة',
+    noContent:'لا يوجد محتوى بعد', noContentD:'ارجع وأضف ملفات أو اكتب محتوى',
+    up:'للأعلى', down:'للأسفل', rm:'حذف', tSmall:'تصغير', tBig:'تكبير', tRot:'تدوير',
+    tFH:'قلب أفقي', tFV:'قلب عمودي', tL:'يسار', tR:'يمين', tReset:'إعادة ضبط'
+  },
+  en: {
+    choose:'Choose input type', sub:'Turn Markdown files into print-ready pages, with Obsidian-style images',
+    optFile:'Upload files', optFileD:'.md or .txt files, images optional',
+    optFolder:'Upload folder', optFolderD:'A folder with your notes and an images subfolder',
+    optText:'Type directly', optTextD:'Write Markdown directly',
+    proceed:'Preview & format →', back:'Back', print:'Print', download:'Download HTML',
+    textSize:'Text size', lineSp:'Line spacing', bodySize:'Body text',
+    writeTitle:'Write Markdown', writeHint:'Type or paste your content', docName:'Document name (optional)',
+    cancel:'Cancel', apply:'Apply →', printHint:'Print preview only. Go back to preview to edit',
+    note:'Note', imgCount:'Images found: {n}', missing:'Image not found',
+    noContent:'No content yet', noContentD:'Go back and add files or write content',
+    up:'Move up', down:'Move down', rm:'Remove', tSmall:'Smaller', tBig:'Larger', tRot:'Rotate',
+    tFH:'Flip horizontal', tFV:'Flip vertical', tL:'Left', tR:'Right', tReset:'Reset'
+  }
+};
+
+const S = { size:100, body:100, lh:1.75 };
+const items = [];
+let uid = 0, printDirty = true, lang = 'en';
+const imgs = new Map();      // lowercase filename -> {name, data, w, h}
+const imgState = new Map();  // figure key -> {s, r, x, fx, fy}
+
+function t(k){ return I[lang][k] ?? I.en[k] ?? k; }
+
+// ───── Language ─────
+function setLang(l){
+  lang = l;
+  document.documentElement.lang = l;
+  document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+  document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = t(e.dataset.i18n));
+  document.querySelectorAll('[data-ph]').forEach(e => e.placeholder = t(e.dataset.ph));
+  document.querySelectorAll('[data-tt]').forEach(e => e.title = t(e.dataset.tt));
+  $('dtext').dir = l === 'ar' ? 'rtl' : 'ltr';
+  renderList();
+}
+
+// ───── Navigation ─────
+function go(p){
+  document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === 'page-' + p));
+  if(p === 'preview') renderPreview();
+  if(p === 'print') renderPrint();
+  scrollTo(0, 0);
+}
+
+// ───── Input ─────
+function toggleMenu(){ $('menu').classList.toggle('open'); }
+function pick(k){
+  $('menu').classList.remove('open');
+  ({ file: () => $('fileIn').click(), folder: () => $('folderIn').click(), text: openModal })[k]();
+}
+
+const rd = (f, mode) => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result);
+  r.onerror = () => no(r.error);
+  mode === 'text' ? r.readAsText(f, 'utf-8') : r.readAsDataURL(f);
+});
+const ext = n => n.split('.').pop().toLowerCase();
+const dims = src => new Promise(ok => {
+  const i = new Image();
+  i.onload = () => ok([i.naturalWidth, i.naturalHeight]);
+  i.onerror = () => ok([1, 1]);
+  i.src = src;
+});
+
+async function ingest(list, folder){
+  const files = Array.from(list);   // copy synchronously before the input is reset
+  if(folder) files.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true }));
+  const md = files.filter(f => ['md', 'markdown', 'txt'].includes(ext(f.name)));
+  const pics = files.filter(f => ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext(f.name)));
+  await Promise.all(pics.map(async f => {
+    const data = await rd(f, 'url');
+    const [w, h] = await dims(data);
+    imgs.set(f.name.toLowerCase(), { name: f.name, data, w, h });
+  }));
+  const texts = await Promise.all(md.map(f => rd(f, 'text')));   // order preserved
+  md.forEach((f, i) => items.push({ id: ++uid, name: f.name, content: texts[i], direct: false }));
+  changed();
+}
+
+$('fileIn').onchange = e => { ingest(e.target.files, false).catch(console.error); e.target.value = ''; };
+$('folderIn').onchange = e => { ingest(e.target.files, true).catch(console.error); e.target.value = ''; };
+
+function openModal(){ $('ov').classList.add('open'); $('dtext').focus(); }
+function closeModal(){ $('ov').classList.remove('open'); }
+function applyModal(){
+  const c = $('dtext').value.trim();
+  if(c){
+    const n = $('dname').value.trim() || `${t('note')} ${items.filter(i => i.direct).length + 1}`;
+    items.push({ id: ++uid, name: n, content: c, direct: true });
+    $('dtext').value = ''; $('dname').value = '';
+    changed();
+  }
+  closeModal();
+}
+
+function changed(){ previewDirty = true; renderList(); }
+function mv(i, d){
+  const j = i + d;
+  if(j < 0 || j >= items.length) return;
+  [items[i], items[j]] = [items[j], items[i]];
+  changed();
+}
+function rm(i){ items.splice(i, 1); changed(); }
+
+function renderList(){
+  $('list').innerHTML = items.map((it, i) => `
+    <div class="item">
+      <span class="num${it.direct ? ' d' : ''}">${it.direct ? '✎' : i + 1}</span>
+      <span class="name">${esc(it.name)}</span>
+      <button class="ib" data-tt="up" onclick="mv(${i},-1)">↑</button>
+      <button class="ib" data-tt="down" onclick="mv(${i},1)">↓</button>
+      <button class="ib" data-tt="rm" onclick="rm(${i})">✕</button>
+    </div>`).join('');
+  const on = items.length > 0;
+  $('list').classList.toggle('on', on);
+  $('proceed').classList.toggle('on', on);
+  $('imgInfo').textContent = imgs.size ? t('imgCount').replace('{n}', imgs.size) : '';
+  $('list').querySelectorAll('[data-tt]').forEach(e => e.title = t(e.dataset.tt));
+}
+
+// ───── Markdown + Obsidian images ─────
+const OBS = /!\[\[([^\]|\n]+?)(?:\|([^\]\n]*))?\]\]/g;
+
+function prep(md){
+  // Replace ![[name|width]] outside fenced code blocks with a placeholder block
+  return md.split(/(```[\s\S]*?```)/).map((p, i) => i % 2 ? p :
+    p.replace(OBS, (_, n, w) =>
+      `\n\n<div class="obs" data-name="${esc(n.trim())}" data-w="${esc((w || '').trim())}"></div>\n\n`)
+  ).join('');
+}
+
+function toHtml(src){
+  if(!window.marked || !window.DOMPurify) return `<pre>${esc(src)}</pre>`;  // offline: show source safely
+  const h = DOMPurify.sanitize(marked.parse(prep(src)));
+  // Checkboxes only in list items, never inside code
+  return h.replace(/<li>\s*\[( |x|X)\]\s*/g, (_, c) =>
+    `<li><input type="checkbox" disabled${c === ' ' ? '' : ' checked'}> `);
+}
+
+function detectDir(text){
+  return (text.match(/[\u0600-\u06FF]/g) || []).length / Math.max(text.length, 1) > 0.15 ? 'rtl' : 'ltr';
+}
+
+function findImg(n){
+  n = n.trim().split('/').pop().toLowerCase();
+  if(imgs.has(n)) return imgs.get(n);
+  for(const e of ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp']){
+    if(imgs.has(n + e)) return imgs.get(n + e);
+  }
+  return null;
+}
+
+// Layout uses percentages, so it needs no measuring and works while the page is hidden
+function paint(fig){
+  const im = findImg(fig.dataset.name);
+  if(!im) return;
+  const st = imgState.get(fig.dataset.key);
+  const q = st.r % 180 !== 0;
+  const fr = fig.querySelector('.frame'), img = fig.querySelector('img');
+  fr.style.width = (q ? st.s * im.h / im.w : st.s) + '%';
+  fr.style.aspectRatio = q ? `${im.h / im.w}` : `${im.w / im.h}`;
+  img.style.cssText = q ? `width:${im.w / im.h * 100}%;height:${im.h / im.w * 100}%` : 'width:100%;height:100%';
+  img.style.transform = `translate(-50%,-50%) rotate(${st.r}deg) scale(${st.fx},${st.fy})`;
+  fig.style.left = st.x + '%';
+  const lb = fig.querySelector('.tools span');
+  if(lb) lb.textContent = st.s + '%';
+}
+
+function tools(){
+  return `<div class="tools no-print">
+    <button data-act="sm" title="${t('tSmall')}">−</button><span></span><button data-act="bg" title="${t('tBig')}">+</button>
+    <button data-act="rot" title="${t('tRot')}">↻</button>
+    <button data-act="fh" title="${t('tFH')}">⇔</button><button data-act="fv" title="${t('tFV')}">⇕</button>
+    <button data-act="up" title="${t('up')}">↑</button><button data-act="dn" title="${t('down')}">↓</button>
+    <button data-act="lf" title="${t('tL')}">←</button><button data-act="rt" title="${t('tR')}">→</button>
+    <button data-act="reset" title="${t('tReset')}">↺</button>
+  </div>`;
+}
+
+function buildFig(name, w, key, editable){
+  const fig = document.createElement('figure');
+  fig.className = 'fig';
+  fig.dataset.key = key;
+  fig.dataset.name = name;
+  if(!imgState.has(key)){
+    const px = parseInt(w);
+    imgState.set(key, { s: px ? Math.min(100, Math.round(px / 6.5)) : 100, r: 0, x: 0, fx: 1, fy: 1 });
+  }
+  const im = findImg(name);
+  if(!im){
+    fig.innerHTML = `<div class="missing">${t('missing')}: ${esc(name)}</div>`;
+    return fig;
+  }
+  fig.innerHTML = `<div class="frame"><img alt="${esc(name)}" src="${im.data}"></div>` + (editable ? tools() : '');
+  paint(fig);
+  return fig;
+}
+
+// Each item becomes its own section with its own direction
+function build(list, editable, cls){
+  return list.map(it => {
+    const s = document.createElement('section');
+    s.className = `md ${cls}`;
+    s.dir = detectDir(it.content);
+    s.innerHTML = toHtml(it.content);
+    s.querySelectorAll('.obs').forEach((el, k) =>
+      el.replaceWith(buildFig(el.dataset.name, el.dataset.w, `${it.id}:${k}`, editable)));
+    s.querySelectorAll('pre,blockquote').forEach(el => el.dir = detectDir(el.textContent));
+    return s;
+  });
+}
+
+function emptyHTML(){
+  return `<div class="empty"><h3>${t('noContent')}</h3><p>${t('noContentD')}</p></div>`;
+}
+
+// ───── Preview ─────
+function applySettings(){
+  const fs = 16 * S.size / 100;
+  const r = document.documentElement.style;
+  r.setProperty('--fs', fs + 'px');
+  r.setProperty('--bfs', (fs * S.body / 100) + 'px');
+  r.setProperty('--lh', S.lh);
+  $('vSize').textContent = S.size + '%';
+  $('vBody').textContent = S.body + '%';
+  $('vLh').textContent = S.lh.toFixed(2);
+}
+function adj(k, d){ S[k] = Math.min(200, Math.max(50, S[k] + d)); applySettings(); }
+function setLH(v){ S.lh = +v; applySettings(); }
+
+// Preview owns the editable layout. It is cached so manual moves and sizes survive navigation.
+let previewCache = new Map(), previewDirty = true;
+function renderPreview(){
+  applySettings();
+  const h = $('previewContent');
+  if(!items.length){ h.innerHTML = emptyHTML(); return; }
+  if(previewDirty){
+    previewCache = new Map();
+    build(items, true, 'card').forEach((s, i) => previewCache.set(items[i].id, s));
+    previewDirty = false;
+  }
+  h.replaceChildren(...items.map(it => previewCache.get(it.id)));
+}
+
+// ───── Print ─────
+// Print is a read-only view: a copy of the preview layout without the editing tools
+function renderPrint(){
+  const s = $('sheet');
+  if(!items.length){ s.innerHTML = emptyHTML(); return; }
+  renderPreview();
+  s.replaceChildren(...items.map(it => {
+    const c = previewCache.get(it.id).cloneNode(true);
+    c.classList.remove('card');
+    c.querySelectorAll('.tools').forEach(n => n.remove());
+    return c;
+  }));
+}
+
+$('previewContent').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if(!b) return;
+  const fig = b.closest('.fig');
+  const st = imgState.get(fig.dataset.key);
+  const a = b.dataset.act;
+  if(a === 'sm') st.s = Math.max(10, st.s - 10);
+  if(a === 'bg') st.s = Math.min(100, st.s + 10);
+  if(a === 'rot') st.r = (st.r + 90) % 360;
+  if(a === 'fh') st.fx *= -1;
+  if(a === 'fv') st.fy *= -1;
+  if(a === 'lf') st.x -= 5;
+  if(a === 'rt') st.x += 5;
+  if(a === 'reset') Object.assign(st, { s: 100, r: 0, x: 0, fx: 1, fy: 1 });
+  if(a === 'up' && fig.previousElementSibling) fig.previousElementSibling.before(fig);
+  if(a === 'dn' && fig.nextElementSibling) fig.nextElementSibling.after(fig);
+  paint(fig);
+});
+
+// Click a code block or quote to switch its direction
+document.addEventListener('click', e => {
+  const el = e.target.closest('#previewContent .md pre, #previewContent .md blockquote');
+  if(el && !e.target.closest('.tools')) el.dir = el.dir === 'rtl' ? 'ltr' : 'rtl';
+});
+
+// ───── Export (self-contained, uses the print layout) ─────
+function exportHTML(){
+  if(!items.length) return;
+  renderPrint();
+  const sheet = $('sheet').cloneNode(true);
+  sheet.querySelectorAll('.no-print').forEach(n => n.remove());
+  const fs = 16 * S.size / 100;
+  const doc = `<!DOCTYPE html>
+<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint Export</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>${$('appcss').textContent}
+:root{--fs:${fs}px;--bfs:${fs * S.body / 100}px;--lh:${S.lh}}
+</style>
+</head>
+<body><div class="print-area">${sheet.outerHTML}</div></body>
+</html>`;
+  const url = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'markprint-export.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ───── Init ─────
+if(window.marked) marked.setOptions({ gfm: true, breaks: true });
+setLang('ar');
+</script>
+</body>
+</html>
