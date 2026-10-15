@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=Cairo:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<style id="appcss">
+:root{--bg:#f7f5f0;--surface:#fff;--s2:#f0ede6;--border:#e0dbd0;--text:#1a1714;--muted:#6b6560;--accent:#5c4a3a;--al:#8b7355;--green:#3d6b4f;--body:'Literata','Noto Kufi Arabic',Georgia,serif;--ui:'Noto Kufi Arabic','Segoe UI',Tahoma,system-ui,sans-serif;--mono:'JetBrains Mono','Courier New',monospace;--code:'Cairo','Noto Kufi Arabic',sans-serif;--fs:16px;--bfs:16px;--lh:1.75}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ui);background:var(--bg);color:var(--text);min-height:100vh}
+button,input,textarea{font-family:inherit}
+button{cursor:pointer}
+.page{display:none;min-height:100vh;flex-direction:column}
+.page.active{display:flex}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:13px;font-weight:600}
+.btn:hover{background:var(--border);color:var(--text)}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-p:hover{background:var(--al)}
+.ib{width:28px;height:28px;border:none;background:none;border-radius:6px;color:var(--muted);font-size:14px}
+.ib:hover{background:var(--s2);color:var(--text)}
+.lang{position:fixed;top:50%;inset-inline-end:0;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 4px;z-index:100;box-shadow:0 0 16px rgba(0,0,0,.08)}
+.lang button{border:none;background:none;padding:6px 8px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted)}
+.lang button.on{background:var(--accent);color:#fff}
+.seg{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px}
+.seg button{border:none;background:none;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--accent);color:#fff}
+.seglbl{font-size:13px;font-weight:600;color:var(--muted)}
+#page-home{align-items:center;justify-content:center;padding:40px 20px}
+.home{width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;gap:28px}
+.logo{width:56px;height:56px;border-radius:14px;background:var(--accent);display:grid;place-items:center}
+.logo svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:2}
+.title{font-family:var(--body);font-weight:300;font-size:clamp(2rem,5vw,3rem)}
+.sub{color:var(--muted);font-size:15px;text-align:center;max-width:400px;line-height:1.6}
+.col{width:100%;display:flex;flex-direction:column;gap:12px}
+.choose{width:100%;padding:22px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;font-family:var(--body);font-size:1.15rem;color:var(--muted);box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.choose:hover{border-color:var(--al);color:var(--text)}
+.menu{display:none;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;overflow:hidden}
+.menu.open{display:block}
+.opt{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);cursor:pointer}
+.opt:last-child{border-bottom:none}
+.opt:hover{background:var(--s2)}
+.opt .ic{width:40px;height:40px;border-radius:10px;background:rgba(92,74,58,.12);display:grid;place-items:center;flex-shrink:0;font-size:18px}
+.opt h3{font-size:15px;font-weight:600}
+.opt p{font-size:13px;color:var(--muted)}
+.hint{margin-inline-start:auto;flex-shrink:0;width:26px;height:26px;border:1.5px solid var(--muted);border-radius:6px;background:none;color:var(--muted);font-weight:700;font-size:14px;line-height:1;padding:0;display:grid;place-items:center}
+.hint:hover{background:var(--s2);color:var(--text)}
+.opt .hintbox{display:none;flex-basis:100%;margin-top:8px;padding-inline-start:54px;font-size:13px;color:var(--muted);line-height:1.6;cursor:default}
+.opt .hintbox.on{display:block}
+.list{display:none;flex-direction:column;gap:8px}
+.list.on{display:flex}
+.item{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px}
+.num{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0;margin-inline-end:4px}
+.num.d{background:var(--green)}
+.name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{font-size:13px;color:var(--muted);text-align:center}
+.proceed{display:none;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600}
+.proceed.on{display:block}
+.clear{display:none;margin:4px auto 0;background:none;border:none;color:var(--muted);font-size:13px;text-decoration:underline;padding:8px}
+.clear.on{display:block}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px;z-index:200}
+.ov.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:700px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.modal h2{font-family:var(--body);font-size:1.1rem;font-weight:500}
+.modal input,.modal textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;background:var(--s2);color:var(--text);padding:10px 12px;outline:none}
+.modal textarea{height:300px;font-family:var(--code);font-size:15px;line-height:1.8;padding:14px;resize:vertical;text-align:start}
+.mfoot{display:flex;justify-content:flex-end;gap:10px}
+.bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:10px 20px;background:rgba(255,255,255,.95);border-bottom:1px solid var(--border)}
+.grp{display:flex;align-items:center;gap:8px}
+.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.step{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px 6px}
+.step button{width:24px;height:24px;border:none;background:none;border-radius:4px;color:var(--muted);font-size:15px}
+.step button:hover{background:var(--border)}
+.step span{font-size:13px;font-weight:600;min-width:44px;text-align:center}
+.sep{width:1px;height:24px;background:var(--border)}
+.bar input[type=range]{width:90px;accent-color:var(--accent)}
+.end{margin-inline-start:auto;display:flex;gap:8px;flex-wrap:wrap}
+.scroll{flex:1;padding:36px 16px;overflow-y:auto}
+.empty{text-align:center;padding:80px 20px;color:var(--muted)}
+.empty h3{font-family:var(--body);font-weight:400;font-size:1.3rem;margin-bottom:8px}
+.card{background:#fff;width:210mm;max-width:none;padding:20mm;margin:0 auto 24px;box-shadow:0 8px 32px rgba(0,0,0,.3);font-size:var(--fs);line-height:var(--lh);color:#111;font-family:var(--body)}
+.print-area{flex:1;padding:36px 16px;background:#888;overflow-y:auto;display:flex;flex-direction:column;align-items:center}
+.sheet{background:#fff;width:210mm;max-width:none;min-height:297mm;padding:20mm;box-shadow:0 8px 32px rgba(0,0,0,.3);color:#111;font-family:var(--body);font-size:var(--fs);line-height:var(--lh)}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{font-family:var(--body);font-weight:600;line-height:1.25;margin:1.4em 0 .6em;break-after:avoid}
+.md h1{font-size:2.1em;font-weight:700;border-bottom:2px solid var(--border);padding-bottom:.3em}
+.md h2{font-size:1.55em;border-bottom:1px solid var(--border);padding-bottom:.2em}
+.md h3{font-size:1.3em}
+.md h4{font-size:1.1em}
+.md h5{font-size:1em;font-weight:700}
+.md h6{font-size:.9em;color:var(--muted)}
+.md p,.md li,.md blockquote,.md th,.md td{font-size:var(--bfs)}
+.md p{margin-bottom:1em}
+.md ul,.md ol{padding-inline-start:1.6em;margin-bottom:1em}
+.md li{margin-bottom:.35em}
+.md li:has(>input){list-style:none;margin-inline-start:-1.2em}
+.md ul ul{list-style-type:circle}
+.md a{color:var(--accent)}
+.md strong{font-weight:700}
+.md blockquote{border-inline-start:4px solid var(--al);background:var(--s2);border-radius:8px;padding:14px 18px;margin:1.2em 0;cursor:pointer}
+.md blockquote p{margin-bottom:0}
+.md code{font-family:var(--code);background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:2px 6px;color:var(--green)}
+.md pre{position:relative;background:#fff;color:var(--text);border:1.5px solid var(--text);border-radius:14px;padding:22px;margin:1.4em 0;overflow-x:auto;white-space:pre-wrap;font-family:var(--code);font-size:var(--bfs);line-height:1.7;cursor:pointer;text-align:start}
+.md pre[data-lang]::before{content:attr(data-lang);display:block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:1px;color:var(--text);margin-bottom:8px}
+.md pre code{background:none;border:none;padding:0;color:inherit}
+.md table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.95em}
+.md th,.md td{border:1px solid var(--border);padding:8px 12px}
+.md th{background:var(--s2);text-align:start}
+.md tr:nth-child(even) td{background:var(--s2)}
+.md hr{border:none;border-top:2px solid var(--border);margin:2em 0}
+.md input[type=checkbox]{margin-inline-end:6px;accent-color:var(--accent)}
+.md img{max-width:100%}
+.fig{position:relative;margin:1.2em 0}
+.frame{position:relative;margin:0 auto}
+.frame img{position:absolute;left:50%;top:50%;max-width:none}
+.missing{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;color:var(--muted);font-size:13px}
+.tools{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:8px;flex-wrap:wrap}
+.tools button{min-width:30px;height:28px;border:1px solid var(--border);background:var(--s2);border-radius:6px;font-size:13px;color:var(--text);padding:0 4px}
+.tools button:hover{background:var(--border)}
+.tools span{font-size:12px;color:var(--muted);min-width:44px;text-align:center}
+.notice{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:300;max-width:90vw;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.notice.on{display:block}
+.md-plain{white-space:pre-wrap;font-family:var(--body);font-size:var(--bfs);line-height:var(--lh)}
+.opt:focus-visible,.choose:focus-visible,.tools button:focus-visible,.ib:focus-visible,.btn:focus-visible,.hint:focus-visible{outline:2px solid var(--al);outline-offset:2px}
+.sq{width:26px;height:26px;border:1.5px solid var(--muted);border-radius:6px;background:none;color:var(--muted);font-weight:700;font-size:14px;line-height:1;padding:0;display:grid;place-items:center;flex-shrink:0}
+.sq:hover{background:var(--s2);color:var(--text)}
+@page{size:A4;margin:0}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff}
+  .no-print,.lang,.bar,.notice{display:none!important}
+  .print-area{background:#fff;padding:0;display:block;overflow:visible}
+  .sheet{box-shadow:none;width:210mm;min-height:0;padding:20mm;max-width:none;zoom:1!important}
+  .card{box-shadow:none;border-radius:0;padding:0;max-width:none;margin:0 0 24px}
+  .fig,pre,blockquote,table{break-inside:avoid}
+}
+@media (max-width:640px){.bar{padding:10px 12px}.lang{top:auto;bottom:12px;transform:none;flex-direction:row;inset-inline-end:12px}.scroll,.print-area{padding-bottom:72px}}
+</style>
+</head>
+<body>
+
+<div class="lang">
+  <button data-l="ar" title="العربية" aria-label="العربية" onclick="setLang('ar')">ع</button>
+  <button data-l="en" title="English" aria-label="English" onclick="setLang('en')">EN</button>
+</div>
+
+<!-- PAGE 1: HOME -->
+<div id="page-home" class="page active">
+  <div class="home">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
+    <h1 class="title">MarkPrint</h1>
+    <p class="sub" data-i18n="sub"></p>
+    <div class="col">
+      <button class="choose" onclick="toggleMenu()"><span data-i18n="choose"></span> ▾</button>
+      <div class="menu" id="menu">
+        <div class="opt" role="button" tabindex="0" onclick="pick('file')"><div class="ic">📄</div><div><h3 data-i18n="optFile"></h3><p data-i18n="optFileD"></p></div><button class="hint" data-tt="hintBtn" onclick="event.stopPropagation();hint('file')">!</button><div class="hintbox" data-hint="file" data-i18n="hintFile" onclick="event.stopPropagation()"></div></div>
+        <div class="opt" role="button" tabindex="0" onclick="pick('folder')"><div class="ic">📁</div><div><h3 data-i18n="optFolder"></h3><p data-i18n="optFolderD"></p></div><button class="hint" data-tt="hintBtn" onclick="event.stopPropagation();hint('folder')">!</button><div class="hintbox" data-hint="folder" data-i18n="hintFolder" onclick="event.stopPropagation()"></div></div>
+        <div class="opt" role="button" tabindex="0" onclick="pick('text')"><div class="ic">✎</div><div><h3 data-i18n="optText"></h3><p data-i18n="optTextD"></p></div><button class="hint" data-tt="hintBtn" onclick="event.stopPropagation();hint('text')">!</button><div class="hintbox" data-hint="text" data-i18n="hintText" onclick="event.stopPropagation()"></div></div>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="note" id="imgInfo"></div>
+      <button class="proceed" id="proceed" onclick="go('preview')" data-i18n="proceed"></button>
+      <button class="clear" id="clearBtn" onclick="clearAll()" data-i18n="clear"></button>
+    </div>
+  </div>
+  <input type="file" id="fileIn" accept=".md,.markdown,.txt,image/*" multiple hidden>
+  <input type="file" id="folderIn" webkitdirectory multiple hidden>
+</div>
+
+<!-- PAGE 2: PREVIEW -->
+<div id="page-preview" class="page">
+  <div class="bar">
+    <button class="btn" onclick="go('home')" data-i18n="back"></button>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="textSize"></span>
+      <div class="step"><button onclick="adj('size',-5)">−</button><span id="vSize"></span><button onclick="adj('size',5)">+</button></div></div>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="lineSp"></span>
+      <input type="range" aria-label="تباعد الأسطر" min="1.2" max="2.8" step="0.1" value="1.75" oninput="setLH(this.value)"><span class="lbl" id="vLh"></span></div>
+    <span class="sep"></span>
+    <div class="grp"><span class="lbl" data-i18n="bodySize"></span>
+      <div class="step"><button onclick="adj('body',-5)">−</button><span id="vBody"></span><button onclick="adj('body',5)">+</button></div></div>
+    <div class="end">
+      <button class="btn" onclick="go('print')" data-i18n="print"></button>
+      <button class="btn btn-p" onclick="exportHTML()" data-i18n="download"></button>
+    </div>
+  </div>
+  <div class="scroll"><div id="previewContent"></div></div>
+</div>
+
+<!-- PAGE 3: PRINT -->
+<div id="page-print" class="page">
+  <div class="bar">
+    <button class="btn" onclick="go('preview')" data-i18n="back"></button>
+    <span class="lbl" data-i18n="printHint"></span>
+    <div class="end">
+      <button class="btn btn-p" onclick="exportHTML()" data-i18n="download"></button>
+      <button class="btn btn-p" onclick="window.print()" data-i18n="print"></button>
+    </div>
+  </div>
+  <div class="print-area"><div class="sheet" id="sheet"></div></div>
+</div>
+
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+
+<!-- WRITE MODAL -->
+<div class="ov" id="ov">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="row"><h2 data-i18n="writeTitle"></h2><button class="ib" data-tt="cancel" onclick="closeModal()">✕</button></div>
+    <p class="note" data-i18n="writeHint"></p>
+    <div class="row"><span class="seglbl" data-i18n="alignLbl"></span><div class="seg"><button data-d="rtl" data-i18n="alignR" onclick="setDir('rtl')"></button><button data-d="ltr" data-i18n="alignL" onclick="setDir('ltr')"></button></div></div>
+    <input id="dname" data-ph="docName">
+    <textarea id="dtext"></textarea>
+    <div class="mfoot">
+      <button class="btn" onclick="closeModal()" data-i18n="cancel"></button>
+      <button class="btn btn-p" onclick="applyModal()" data-i18n="apply"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+
+const I = {
+  ar: {
+    choose:'اختر طريقة الإدخال', sub:'حوّل ملفات Markdown إلى صفحات جاهزة للطباعة',
+    optFile:'رفع ملفات', optFileD:'ملفات .md أو .txt، والصور اختيارية',
+    optFolder:'رفع مجلد (حال وجود صور)', optFolderD:'مجلد يحتوي الملفات، وصور',
+    optText:'الكتابة المباشرة', optTextD:'اكتب Markdown مباشرة',
+    proceed:'معاينة وتنسيق ←', back:'رجوع', print:'طباعة', download:'تحميل HTML',
+    textSize:'حجم النص', lineSp:'تباعد الأسطر', bodySize:'النص الأساسي',
+    writeTitle:'كتابة Markdown', writeHint:'اكتب أو الصق المحتوى', docName:'اسم المستند (اختياري)',
+    cancel:'إلغاء', apply:'تطبيق ←', printHint:'معاينة الطباعة فقط، للتعديل ارجع إلى المعاينة',
+    note:'ملاحظة', imgCount:'صور مكتشفة: {n}', missing:'صورة غير موجودة',
+    noContent:'لا يوجد محتوى بعد', noContentD:'ارجع وأضف ملفات أو اكتب محتوى',
+    up:'للأعلى', down:'للأسفل', rm:'حذف', tSmall:'تصغير', tBig:'تكبير', tRot:'تدوير',
+    tFH:'قلب أفقي', tFV:'قلب عمودي', tL:'يسار', tR:'يمين', tReset:'إعادة ضبط',
+    saveFail:'تعذّر الحفظ: المساحة ممتلئة أو التخزين معطّل', imgFail:'تعذّر تحميل بعض الصور',
+    offline:'تعذّر تحميل المكتبات، تحقق من الاتصال بالإنترنت',
+    clear:'مسح كل البيانات', clearConfirm:'سيتم حذف جميع الملفات والصور والتعديلات المحفوظة في هذا المتصفح. هل أنت متأكد؟',
+    cleared:'تم مسح البيانات', clearFail:'تعذّر مسح الصور',
+    edit:'تعديل',
+    hintBtn:'شرح الخيار',
+    alignLbl:'المحاذاة من', alignR:'اليمين', alignL:'اليسار',
+    hintFile:'يرفع ملفات Markdown بصيغة md. أو txt. من جهازك، ويتحول كل ملف إلى صفحة مستقلة. إذا احتوت الملفات على صور بصيغة ![[اسم الصورة]]، فارفع الصور مع الملفات في الوقت نفسه. ويمكنك تغيير ترتيب الصفحات بعد الرفع.',
+    hintFolder:'يرفع مجلداً كاملاً، ويقرأ البرنامج جميع ملفات Markdown الموجودة فيه بالترتيب الأبجدي. لإضافة الصور، ضعها داخل المجلد نفسه أو داخل مجلد فرعي باسم images، ثم اكتب اسم الصورة في النص بالصيغة ![[اسم-الصورة.png]]. يبحث البرنامج عن الصورة بالاسم، لذلك يجب أن يتطابق الاسم تماماً.',
+    hintText:'تكتب Markdown أو تلصقه مباشرة في نافذة الكتابة دون رفع ملفات، وهذا الخيار مناسب للملاحظات السريعة. لا يمكن رفع الصور من هذه النافذة، لكن الصور التي رُفعت من قبل تظهر إذا تطابق اسمها.'
+  },
+  en: {
+    choose:'Choose input type', sub:'Turn Markdown files into print-ready pages',
+    optFile:'Upload files', optFileD:'.md or .txt files, images optional',
+    optFolder:'Upload folder (if images exist)', optFolderD:'A folder with your notes and images',
+    optText:'Type directly', optTextD:'Write Markdown directly',
+    proceed:'Preview & format →', back:'Back', print:'Print', download:'Download HTML',
+    textSize:'Text size', lineSp:'Line spacing', bodySize:'Body text',
+    writeTitle:'Write Markdown', writeHint:'Type or paste your content', docName:'Document name (optional)',
+    cancel:'Cancel', apply:'Apply →', printHint:'Print preview only. Go back to preview to edit',
+    note:'Note', imgCount:'Images found: {n}', missing:'Image not found',
+    noContent:'No content yet', noContentD:'Go back and add files or write content',
+    up:'Move up', down:'Move down', rm:'Remove', tSmall:'Smaller', tBig:'Larger', tRot:'Rotate',
+    tFH:'Flip horizontal', tFV:'Flip vertical', tL:'Left', tR:'Right', tReset:'Reset',
+    saveFail:'Could not save: storage is full or disabled', imgFail:'Some images could not be loaded',
+    offline:'Libraries failed to load, check your internet connection',
+    clear:'Clear all data', clearConfirm:'This will delete all files, images and edits saved in this browser. Are you sure?',
+    cleared:'Data cleared', clearFail:'Could not clear images',
+    edit:'Edit',
+    hintBtn:'About this option',
+    alignLbl:'Align from', alignR:'Right', alignL:'Left',
+    hintFile:'Uploads Markdown files (.md or .txt) from your device. Each file becomes its own page. If the files use images like ![[image name]], upload the images at the same time, and you can reorder the pages after uploading.',
+    hintFolder:'Uploads a whole folder and reads every Markdown file in it in alphabetical order. To add images, place them inside the folder or in a subfolder named images, then write the image name in the text as ![[image-name.png]]. The app finds images by name, so the name must match exactly.',
+    hintText:'Type or paste Markdown directly in the writing window without files. Good for quick notes. Images cannot be uploaded here, but any image uploaded earlier will show up if its name matches.'
+  }
+};
+
+const S = { size:100, body:100, lh:1.75 };
+const items = [];
+let uid = 0, lang = 'en';
+const imgs = new Map();      // relative path (lowercase) -> {name, data, w, h}
+const imgState = new Map();  // figure key -> {s, r, x, fx, fy}
+
+function t(k){ return I[lang][k] ?? I.en[k] ?? k; }
+
+// ───── Language ─────
+function setLang(l){
+  lang = l;
+  document.documentElement.lang = l;
+  document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+  document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = t(e.dataset.i18n));
+  document.querySelectorAll('[data-ph]').forEach(e => e.placeholder = t(e.dataset.ph));
+  document.querySelectorAll('[data-tt]').forEach(e => { e.title = t(e.dataset.tt); e.setAttribute('aria-label', e.title); });
+  textDir = l === 'ar' ? 'rtl' : 'ltr';
+  applyDir();
+  renderList();
+  refreshLabels();
+}
+
+// ───── Navigation ─────
+function go(p){
+  document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === 'page-' + p));
+  if(p === 'preview') renderPreview();
+  if(p === 'print') renderPrint();
+  fitSheets();
+  scrollTo(0, 0);
+}
+
+// ───── Input ─────
+function toggleMenu(){ $('menu').classList.toggle('open'); }
+function hint(k){ document.querySelector('[data-hint="' + k + '"]').classList.toggle('on'); }
+function pick(k){
+  $('menu').classList.remove('open');
+  ({ file: () => $('fileIn').click(), folder: () => $('folderIn').click(), text: openNew })[k]();
+}
+
+const rd = (f, mode) => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result);
+  r.onerror = () => no(r.error);
+  mode === 'text' ? r.readAsText(f, 'utf-8') : r.readAsDataURL(f);
+});
+const ext = n => n.split('.').pop().toLowerCase();
+const dims = (src, file) => new Promise(ok => {
+  const i = new Image();
+  i.onload = async () => {
+    if(i.naturalWidth && i.naturalHeight) return ok([i.naturalWidth, i.naturalHeight]);
+    // SVG without a usable size: take the aspect ratio from its viewBox
+    try{
+      const m = (await file.text()).match(/viewBox\s*=\s*["']([^"']+)["']/);
+      const p = m && m[1].trim().split(/[\s,]+/).map(Number);
+      if(p && p[2] > 0 && p[3] > 0) return ok([p[2], p[3]]);
+    }catch(e){}
+    ok([4, 3]);
+  };
+  i.onerror = () => ok([4, 3]);
+  i.src = src;
+});
+
+async function ingest(list, folder){
+  const files = Array.from(list);   // copy synchronously before the input is reset
+  if(folder) files.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath, undefined, { numeric: true }));
+  const md = files.filter(f => ['md', 'markdown', 'txt'].includes(ext(f.name)));
+  const pics = files.filter(f => ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext(f.name)));
+  let failed = 0;
+  await Promise.all(pics.map(async f => {
+    try{
+      // keyed by relative path, so same-named images in different folders do not overwrite each other
+      const key = (f.webkitRelativePath || f.name).toLowerCase();
+      const url = URL.createObjectURL(f);
+      const [w, h] = await dims(url, f);
+      const v = { name: f.name, blob: f, w, h, url };
+      imgs.set(key, v);
+      await putImg(key, v);
+    }catch(e){ failed++; }
+  }));
+  if(failed) notify(t('imgFail'));
+  const texts = await Promise.all(md.map(f => rd(f, 'text')));   // order preserved
+  md.forEach((f, i) => items.push({ id: ++uid, name: f.name, content: texts[i], direct: false }));
+  changed();
+}
+
+$('fileIn').onchange = e => { ingest(e.target.files, false).catch(console.error); e.target.value = ''; };
+$('folderIn').onchange = e => { ingest(e.target.files, true).catch(console.error); e.target.value = ''; };
+
+let textDir = 'rtl';
+function applyDir(){
+  $('dtext').dir = textDir;
+  document.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('on', b.dataset.d === textDir));
+}
+function setDir(d){
+  textDir = d;
+  applyDir();
+  $('dtext').focus();
+}
+let editingId = null;
+function openNew(){ editingId = null; $('dname').value = ''; $('dtext').value = ''; openModal(); }
+function editItem(id){
+  const it = items.find(x => x.id === id);
+  if(!it) return;
+  editingId = id;
+  $('dname').value = it.name;
+  $('dtext').value = it.content;
+  openModal();
+}
+function openModal(){ $('ov').classList.add('open'); $('dtext').focus(); }
+function closeModal(){ $('ov').classList.remove('open'); editingId = null; }
+function applyModal(){
+  const c = $('dtext').value.trim();
+  const typedName = $('dname').value.trim();
+  if(editingId !== null){
+    const it = items.find(x => x.id === editingId);
+    if(it && c){
+      it.content = c;
+      it.name = typedName || it.name;
+      // the text changed, so saved figure positions no longer match it
+      for(const k of imgState.keys()) if(k.startsWith(it.id + ':')) delete imgState.get(k).p;
+      previewCache.delete(it.id);   // rebuild this section on the next render
+      changed();
+    }
+  } else if(c){
+    const n = typedName || `${t('note')} ${items.filter(i => i.direct).length + 1}`;
+    items.push({ id: ++uid, name: n, content: c, direct: true });
+    $('dtext').value = ''; $('dname').value = '';
+    changed();
+  }
+  closeModal();
+}
+
+function changed(){ renderList(); save(); }
+function mv(i, d){
+  const j = i + d;
+  if(j < 0 || j >= items.length) return;
+  [items[i], items[j]] = [items[j], items[i]];
+  changed();
+}
+function rm(i){ items.splice(i, 1); changed(); }
+
+function renderList(){
+  $('list').innerHTML = items.map((it, i) => `
+    <div class="item">
+      <span class="num${it.direct ? ' d' : ''}">${it.direct ? '✎' : i + 1}</span>
+      <span class="name"${it.direct ? ` onclick="editItem(${it.id})" style="cursor:pointer"` : ''}>${esc(it.name)}</span>
+      <button class="sq" data-tt="up" onclick="mv(${i},-1)">↑</button>
+      <button class="sq" data-tt="down" onclick="mv(${i},1)">↓</button>
+      <button class="ib" data-tt="rm" onclick="rm(${i})">✕</button>
+    </div>`).join('');
+  const on = items.length > 0;
+  $('list').classList.toggle('on', on);
+  $('proceed').classList.toggle('on', on);
+  $('clearBtn').classList.toggle('on', on || imgs.size > 0);
+  $('imgInfo').textContent = imgs.size ? t('imgCount').replace('{n}', imgs.size) : '';
+  $('list').querySelectorAll('[data-tt]').forEach(e => { e.title = t(e.dataset.tt); e.setAttribute('aria-label', e.title); });
+}
+
+// ───── Persistence ─────
+// Text and layout go to localStorage (small). Images go to IndexedDB, or to localStorage
+// when IndexedDB is unavailable (some browsers and in-app viewers block it).
+const STORE_KEY = 'markprint:v2';
+const LEGACY_KEY = 'markprint:v1';
+const IMG_KEY = 'markprint:imgs';
+let ready = false;   // set once restore() finished, so an early save cannot wipe stored data
+
+function notify(msg){
+  const n = $('notice');
+  n.textContent = msg;
+  n.classList.add('on');
+  clearTimeout(notify.timer);
+  notify.timer = setTimeout(() => n.classList.remove('on'), 6000);
+}
+
+let dbPromise = null, useIDB = true;
+function openDB(){
+  return dbPromise ??= new Promise((ok, no) => {
+    const r = indexedDB.open('markprint', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('imgs');
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => no(r.error);
+  });
+}
+// One IndexedDB transaction. fn may return requests whose results are returned.
+function idbRun(mode, fn){
+  return (async () => {
+    const db = await openDB();
+    return new Promise((ok, no) => {
+      const tx = db.transaction('imgs', mode);
+      const reqs = fn(tx.objectStore('imgs'));
+      tx.oncomplete = () => ok(reqs ? reqs.map(r => r.result) : undefined);
+      tx.onerror = tx.onabort = () => no(tx.error);
+    });
+  })();
+}
+const lsImgs = () => JSON.parse(localStorage.getItem(IMG_KEY) || '{}');
+
+async function putImg(key, v){
+  if(!v.blob && v.data) v.blob = await (await fetch(v.data)).blob();   // older records stored data: URLs
+  if(useIDB){
+    try{ await idbRun('readwrite', st => { st.put({ name: v.name, w: v.w, h: v.h, blob: v.blob }, key); }); return; }
+    catch(e){ useIDB = false; }
+  }
+  const o = lsImgs();
+  o[key] = { name: v.name, w: v.w, h: v.h, data: v.data || await rd(v.blob, 'url') };
+  localStorage.setItem(IMG_KEY, JSON.stringify(o));   // throws when full, the caller reports it
+}
+const srcOf = v => (v.url ??= v.blob ? URL.createObjectURL(v.blob) : v.data);
+async function loadImgs(){
+  if(useIDB){
+    try{
+      const [keys, vals] = await idbRun('readonly', st => [st.getAllKeys(), st.getAll()]);
+      keys.forEach((k, i) => imgs.set(k, vals[i]));
+      return;
+    }catch(e){ useIDB = false; }
+  }
+  Object.entries(lsImgs()).forEach(([k, v]) => imgs.set(k, v));
+}
+async function clearImgs(){
+  localStorage.removeItem(IMG_KEY);
+  if(useIDB){ try{ await idbRun('readwrite', st => { st.clear(); }); }catch(e){ useIDB = false; } }
+}
+
+// Text and layout are small, so they stay in localStorage. Rapid changes are batched into one write.
+let saveTimer = 0;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 250);
+}
+function persist(){
+  if(!ready) return;
+  clearTimeout(saveTimer);
+  const ids = new Set(items.map(it => it.id));
+  for(const k of [...imgState.keys()]) if(!ids.has(+k.split(':')[0])) imgState.delete(k);   // layout of removed items
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({ items, uid, imgState: [...imgState.entries()] }));
+  }catch(e){ notify(t('saveFail')); }
+}
+addEventListener('pagehide', persist);
+
+async function restore(){
+  let d = null, legacy = null;
+  try{ d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); }catch(e){}
+  await loadImgs().catch(() => notify(t('imgFail')));
+  // images from the first version live under the old key; move them over
+  try{ legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null'); }catch(e){}
+  if(legacy){
+    for(const [k, v] of legacy.imgs || []){
+      if(!imgs.has(k)){
+        imgs.set(k, v);
+        await putImg(k, v).catch(() => notify(t('imgFail')));
+      }
+    }
+    localStorage.removeItem(LEGACY_KEY);
+    if(!d) d = legacy;
+  }
+  if(!d) return;
+  items.push(...(d.items || []));
+  uid = d.uid || 0;
+  (d.imgState || []).forEach(([k, v]) => imgState.set(k, v));
+}
+
+async function clearAll(){
+  if(!confirm(t('clearConfirm'))) return;
+  clearTimeout(saveTimer);
+  items.length = 0;
+  imgs.forEach(v => { if(v.url?.startsWith('blob:')) URL.revokeObjectURL(v.url); });
+  imgs.clear(); imgState.clear(); previewCache.clear(); uid = 0;
+  localStorage.removeItem(STORE_KEY); localStorage.removeItem(LEGACY_KEY);
+  try{ await clearImgs(); notify(t('cleared')); }catch(e){ notify(t('clearFail')); }
+  renderList();
+}
+
+// ───── Keyboard: Escape closes the dialog; Enter/Space activate role="button" elements ─────
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeModal();
+  if((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[role="button"]')){
+    e.preventDefault();
+    e.target.click();
+  }
+});
+
+// ───── Markdown + Obsidian images ─────
+const OBS = /!\[\[([^\]|\n]+?)(?:\|([^\]\n]*))?\]\]/g;
+
+function prep(md, plain = false){
+  // Replace ![[name|width]] outside code with a placeholder. Inside a list item the
+  // placeholder stays inline, otherwise the block break would split the list.
+  const place = (n, w, inline) => {
+    const a = `class="obs" data-name="${esc(n.trim())}" data-w="${esc((w || '').trim())}"`;
+    return inline ? `<span ${a}></span>` : `\n\n<div ${a}></div>\n\n`;
+  };
+  const txt = s => plain ? esc(s) : s;   // offline mode: escape everything except our placeholders
+  return md.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]+`)/).map((p, i) => {
+    if(i % 2) return txt(p);             // code: escaped in offline mode, untouched otherwise
+    return p.split('\n').map(line => {
+      const inList = /^\s*(?:[-*+]|\d+[.)])\s/.test(line);
+      let out = '', last = 0;
+      for(const m of line.matchAll(OBS)){
+        out += txt(line.slice(last, m.index)) + place(m[1], m[2], inList);
+        last = m.index + m[0].length;
+      }
+      return out + txt(line.slice(last));
+    }).join('\n');
+  }).join('');
+}
+
+function toHtml(src){
+  // Offline (CDN blocked): plain text, escaped first, while Obsidian images still resolve
+  if(!window.marked || !window.DOMPurify) return `<div class="md-plain">${prep(src, true)}</div>`;
+  const h = DOMPurify.sanitize(marked.parse(prep(src)));
+  // Checkboxes only in list items, never inside code
+  return h.replace(/<li>\s*\[( |x|X)\]\s*/g, (_, c) =>
+    `<li><input type="checkbox" disabled${c === ' ' ? '' : ' checked'}> `);
+}
+
+function detectDir(text){
+  return (text.match(/[\u0600-\u06FF]/g) || []).length / Math.max(text.length, 1) > 0.15 ? 'rtl' : 'ltr';
+}
+
+const IMG_EXT = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
+function findImg(n){
+  // Obsidian links are usually bare file names, so also match the end of the stored path
+  n = n.trim().replace(/^\.?\//, '').toLowerCase();
+  for(const c of [n, ...IMG_EXT.map(e => n + e)]){
+    if(imgs.has(c)) return imgs.get(c);
+    for(const [k, v] of imgs) if(k.endsWith('/' + c)) return v;
+  }
+  return null;
+}
+
+// Layout uses percentages, so it needs no measuring and works while the page is hidden
+function paint(fig){
+  const im = findImg(fig.dataset.name);
+  if(!im) return;
+  const st = imgState.get(fig.dataset.key);
+  // The frame is centred with width s%, so it can slide at most (100 - s) / 2 % each way.
+  const maxX = (100 - st.s) / 2;
+  st.x = Math.max(-maxX, Math.min(maxX, st.x));
+  const q = st.r % 180 !== 0;
+  const fr = fig.querySelector('.frame'), img = fig.querySelector('img');
+  fr.style.width = (q ? st.s * im.h / im.w : st.s) + '%';
+  fr.style.aspectRatio = q ? `${im.h / im.w}` : `${im.w / im.h}`;
+  img.style.cssText = q ? `width:${im.w / im.h * 100}%;height:${im.h / im.w * 100}%` : 'width:100%;height:100%';
+  img.style.transform = `translate(-50%,-50%) rotate(${st.r}deg) scale(${st.fx},${st.fy})`;
+  // Shift the frame itself, so the figure block keeps the full column width
+  fr.style.left = st.x + '%';
+  const lb = fig.querySelector('.tools span');
+  if(lb) lb.textContent = st.s + '%';
+}
+
+function tools(){
+  return `<div class="tools no-print">
+    <button data-act="sm" title="${t('tSmall')}">−</button><span></span><button data-act="bg" title="${t('tBig')}">+</button>
+    <button data-act="rot" title="${t('tRot')}">↻</button>
+    <button data-act="fh" title="${t('tFH')}">⇔</button><button data-act="fv" title="${t('tFV')}">⇕</button>
+    <button data-act="up" title="${t('up')}">↑</button><button data-act="dn" title="${t('down')}">↓</button>
+    <button data-act="lf" title="${t('tL')}">←</button><button data-act="rt" title="${t('tR')}">→</button>
+    <button data-act="reset" title="${t('tReset')}">↺</button>
+  </div>`;
+}
+
+function buildFig(name, w, key, editable){
+  const fig = document.createElement('figure');
+  fig.className = 'fig';
+  fig.dataset.key = key;
+  fig.dataset.name = name;
+  if(!imgState.has(key)){
+    const px = parseInt(w);
+    imgState.set(key, { s: px ? Math.min(100, Math.round(px / 6.5)) : 100, r: 0, x: 0, fx: 1, fy: 1 });
+  }
+  const im = findImg(name);
+  if(!im){
+    fig.innerHTML = `<div class="missing" data-name="${esc(name)}">${t('missing')}: ${esc(name)}</div>`;
+    return fig;
+  }
+  fig.innerHTML = `<div class="frame"><img alt="${esc(name)}" src="${esc(srcOf(im))}"></div>` + (editable ? tools() : '');
+  paint(fig);
+  return fig;
+}
+
+// Each item becomes its own section with its own direction
+function build(list, editable, cls){
+  return list.map(it => {
+    const s = document.createElement('section');
+    s.className = `md ${cls}`;
+    s.dir = detectDir(it.content);
+    s.innerHTML = toHtml(it.content);
+    s.querySelectorAll('.obs').forEach((el, k) =>
+      el.replaceWith(buildFig(el.dataset.name, el.dataset.w, `${it.id}:${k}`, editable)));
+    // restore the saved order of figures inside this section
+    const figs = [...s.querySelectorAll(':scope > .fig')];
+    if(figs.length > 1 && figs.every(f => imgState.get(f.dataset.key)?.p != null)){
+      figs.forEach(f => f.remove());
+      figs.sort((a, b) => imgState.get(a.dataset.key).p - imgState.get(b.dataset.key).p)
+        .forEach(f => s.insertBefore(f, s.children[imgState.get(f.dataset.key).p] || null));
+    }
+    s.querySelectorAll('pre,blockquote').forEach(el => el.dir = detectDir(el.textContent));
+    s.querySelectorAll('pre').forEach(p => {
+      const m = (p.querySelector('code') || {}).className?.match(/language-(\S+)/);
+      if(m) p.dataset.lang = m[1];
+    });
+    return s;
+  });
+}
+
+function emptyHTML(){
+  return `<div class="empty"><h3>${t('noContent')}</h3><p>${t('noContentD')}</p></div>`;
+}
+
+// Re-translate text baked into cached DOM: tool titles, missing-image notes, empty state
+function refreshLabels(){
+  document.querySelectorAll('#previewContent [data-act]').forEach(b => {
+    const v = t(TOOL_KEYS[b.dataset.act]);
+    b.title = v; b.setAttribute('aria-label', v);
+  });
+  document.querySelectorAll('#previewContent .missing').forEach(m => m.textContent = `${t('missing')}: ${m.dataset.name}`);
+  if(!items.length){ $('previewContent').innerHTML = emptyHTML(); $('sheet').innerHTML = emptyHTML(); }
+}
+
+// ───── Preview ─────
+function applySettings(){
+  const fs = 16 * S.size / 100;
+  const r = document.documentElement.style;
+  r.setProperty('--fs', fs + 'px');
+  r.setProperty('--bfs', (fs * S.body / 100) + 'px');
+  r.setProperty('--lh', S.lh);
+  $('vSize').textContent = S.size + '%';
+  $('vBody').textContent = S.body + '%';
+  $('vLh').textContent = S.lh.toFixed(2);
+}
+function adj(k, d){ S[k] = Math.min(200, Math.max(50, S[k] + d)); applySettings(); }
+function setLH(v){ S.lh = +v; applySettings(); }
+
+// Preview owns the editable layout. It is cached by item id so manual moves and sizes survive navigation.
+const previewCache = new Map();
+const TOOL_KEYS = { sm:'tSmall', bg:'tBig', rot:'tRot', fh:'tFH', fv:'tFV', up:'up', dn:'down', lf:'tL', rt:'tR', reset:'tReset' };
+function renderPreview(){
+  applySettings();
+  const h = $('previewContent');
+  if(!items.length){ h.innerHTML = emptyHTML(); return; }
+  const ids = new Set(items.map(it => it.id));
+  for(const id of previewCache.keys()) if(!ids.has(id)) previewCache.delete(id);
+  items.forEach(it => { if(!previewCache.has(it.id)) previewCache.set(it.id, build([it], true, 'card')[0]); });
+  h.replaceChildren(...items.map(it => previewCache.get(it.id)));
+  refreshLabels();
+}
+
+// Scale the 210 mm sheet down on narrow screens. zoom reflows the content, so line breaks
+// and image positions stay the same as in print.
+function fitSheets(){
+  const box = document.querySelector('.page.active .scroll, .page.active .print-area');
+  if(!box || !box.clientWidth) return;
+  const z = Math.min(1, (box.clientWidth - 32) / 793.7).toFixed(3);   // 793.7px = 210mm
+  box.querySelectorAll('.card, .sheet').forEach(el => el.style.zoom = z);
+}
+addEventListener('resize', fitSheets);
+
+// ───── Print ─────
+// Print is a read-only view: a copy of the preview layout without the editing tools
+function renderPrint(){
+  const s = $('sheet');
+  if(!items.length){ s.innerHTML = emptyHTML(); return; }
+  renderPreview();
+  s.replaceChildren(...items.map(it => {
+    const c = previewCache.get(it.id).cloneNode(true);
+    c.classList.remove('card'); c.style.zoom = '';
+    c.querySelectorAll('.tools').forEach(n => n.remove());
+    return c;
+  }));
+}
+
+// remember each figure's index among its section's children, so the order survives reloads
+function savePos(sec){
+  if(!sec) return;
+  [...sec.children].forEach((el, i) => {
+    if(el.classList.contains('fig')){ const st = imgState.get(el.dataset.key); if(st) st.p = i; }
+  });
+}
+
+$('previewContent').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if(!b) return;
+  const fig = b.closest('.fig');
+  const st = imgState.get(fig.dataset.key);
+  const a = b.dataset.act;
+  if(a === 'sm') st.s = Math.max(10, st.s - 10);
+  if(a === 'bg') st.s = Math.min(100, st.s + 10);
+  if(a === 'rot') st.r = (st.r + 90) % 360;
+  if(a === 'fh') st.fx *= -1;
+  if(a === 'fv') st.fy *= -1;
+  if(a === 'lf') st.x -= 5;
+  if(a === 'rt') st.x += 5;
+  if(a === 'reset') Object.assign(st, { s: 100, r: 0, x: 0, fx: 1, fy: 1 });
+  if(a === 'up' && fig.previousElementSibling) fig.previousElementSibling.before(fig);
+  if(a === 'dn' && fig.nextElementSibling) fig.nextElementSibling.after(fig);
+  savePos(fig.parentElement);
+  paint(fig);
+  save();
+});
+
+// Click a code block or quote to switch its direction (ignored while the user is selecting text)
+document.addEventListener('click', e => {
+  const el = e.target.closest('#previewContent .md pre, #previewContent .md blockquote');
+  if(window.getSelection && window.getSelection().toString()) return;
+  if(el && !e.target.closest('.tools')) el.dir = el.dir === 'rtl' ? 'ltr' : 'rtl';
+});
+
+// ───── Export (self-contained, uses the print layout) ─────
+async function exportHTML(){
+  if(!items.length) return;
+  renderPrint();
+  const sheet = $('sheet').cloneNode(true);
+  sheet.removeAttribute('id');
+  sheet.style.zoom = '';   // the on-screen zoom must not end up in the file
+  sheet.querySelectorAll('.no-print').forEach(n => n.remove());
+  // blob: URLs only work in this session, so embed the images as data: URLs
+  await Promise.all([...sheet.querySelectorAll('img')]
+    .filter(img => img.getAttribute('src').startsWith('blob:'))
+    .map(async img => { img.src = await rd(await (await fetch(img.getAttribute('src'))).blob(), 'url'); }));
+  const fs = 16 * S.size / 100;
+  const doc = `<!DOCTYPE html>
+<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkPrint Export</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=Cairo:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>${$('appcss').textContent}
+:root{--fs:${fs}px;--bfs:${fs * S.body / 100}px;--lh:${S.lh}}
+</style>
+</head>
+<body><div class="print-area">${sheet.outerHTML}</div></body>
+</html>`;
+  const url = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'markprint-export.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ───── Init ─────
+// close the write dialog only when the press also started on the backdrop (not when selecting text)
+let ovDown = false;
+$('ov').addEventListener('mousedown', e => { ovDown = e.target === e.currentTarget; });
+$('ov').addEventListener('click', e => { if(ovDown && e.target === e.currentTarget) closeModal(); ovDown = false; });
+if(window.marked) marked.setOptions({ gfm: true, breaks: true });
+setLang('ar');
+if(!window.marked || !window.DOMPurify) notify(t('offline'));
+restore().finally(() => { ready = true; save(); renderList(); });
+</script>
+</body>
+</html>
